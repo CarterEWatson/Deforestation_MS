@@ -1,0 +1,15 @@
+01/01/2026
+
+Code and associated data organized in new folder, former folder retitled “old materials.”
+
+Associated simulations and code stored on Prospero in directories:
+ - "$HOME/MastersTrials/2017_runs" -- all 2017 simulations
+ - "$HOME/MastersTrials/2018_runs" -- all 2018 simulations
+ - "$HOME/MastersTrials/December2025" -- all extracted data and associated scripts
+ - "$HOME/MastersTrials/July2025" -- all extracted data and associated scripts for previous version. Only used for vertical windspeed.
+
+All materials present, except:
+ - code used to create pre- and post- GPP validation data sets (likely on Prospero, used R script to extract GPP at specific lat/lons.)
+ - Pre- validation simulation (on Prospero, somewhere. Completed after all other runs.)
+ - Script used to download MODIS validation points (likely with Masters stuff).
+ - code used to validate PRISM precipitation (found in folder, but separate R script).

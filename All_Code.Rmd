@@ -1,0 +1,2014 @@
+---
+title: '"Thesis" Manuscript'
+author: "Carter E. Watson"
+date: "2025-07-18"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Load All Required Packages
+
+```{r packages}
+require(tidyverse)
+require(dplyr)
+require(sf)
+require(ggpubr)
+require(scico)
+require(ncdf4)
+require(geosphere)
+require(RColorBrewer)
+require(ggnewscale)
+require(knitr)
+```
+
+
+## Infrastructure
+
+```{r pressure, include=FALSE}
+states <- st_read("./data/geography/cb_2018_us_state_500k.shp")
+physiographic <- st_make_valid(st_read("./data/geography/physio_shp/physio.shp"))
+selected_states <- states %>% 
+  filter(NAME %in% c("Ohio", "Kentucky", "North Carolina", "Virginia", "West Virginia", "Tennessee"))
+clipped_physiographic <- st_intersection(physiographic, selected_states)
+box_coords <- data.frame(
+  long = c(-82.878, -79.425, -79.652, -82.991, -82.878),
+  lat = c(38.967, 38.830, 36.141, 36.274, 38.967))
+box_polygon <- st_polygon(list(cbind(box_coords$long, box_coords$lat))) %>% 
+  st_sfc(crs = st_crs(clipped_physiographic))
+inside_regions <- st_intersection(clipped_physiographic, box_polygon) #WHERE THE STATES AND THE BOX OVERLAP.
+outside_regions <- st_difference(clipped_physiographic, box_polygon) #OUTSIDE WHERE THE STATES AND BOX OVERLAP
+inside_colors <- colorRampPalette(brewer.pal(9, "Greens"))(length(unique(inside_regions$PROVINCE))) #MAKE IT GREEN INSIDE.
+outside_colors <- colorRampPalette(brewer.pal(9, "Blues"))(length(unique(outside_regions$PROVINCE))) #AND BLUE OUTSIDE.
+inside_palette <- setNames(inside_colors, unique(inside_regions$PROVINCE)) #MAKE THE KEY FOR INSIDE THE BOX.
+outside_palette <- setNames(outside_colors, unique(outside_regions$PROVINCE)) #AND THE KEY FOR OUTSIDE THE BOX.
+outside_regions <- outside_regions %>% mutate(color = outside_palette[PROVINCE]) %>%
+  group_by(color) %>%
+  summarize(geometry = st_union(geometry)) %>%
+  ungroup()
+inside_regions <- inside_regions %>% mutate(color = inside_palette[PROVINCE]) %>%
+  group_by(color) %>%
+  summarize(geometry = st_union(geometry)) %>%
+  ungroup()
+combined_regions <- bind_rows(
+  inside_regions,
+  outside_regions)
+selected_states <- st_transform(selected_states, crs = 4326)
+combined_regions <- st_transform(combined_regions, crs = 4326)
+
+standardized_theme <- theme(legend.text = element_text(size = 10), legend.title = element_text(size = 12), legend.key.width = unit(1.5, 'cm'),
+                            plot.title = element_text(hjust = 0.5, face="bold"))
+```
+
+
+## Import CSVs
+
+```{r import_data}
+## FULL CTRL DATA ##
+## (1) Mean_CTRL_VT >= 273 (done in RDS to CSV script)
+## (2) PSN > 2 (done below)
+## SO, AFTER REMOVING "FROZEN," "DEAD" POINTS:
+
+ctrl_17 <- read.csv("./data/csvs/all_points/December2025_17.001_all_points.csv") %>% filter(Mean_CTRL_PSN > 2)
+ctrl_18 <- read.csv("./data/csvs/all_points/December2025_18.001_all_points.csv") %>% filter(Mean_CTRL_PSN > 2)
+
+```
+
+
+## New Figure 1)
+
+Figs. 2.1-2.3 can be combined into 1 4 panel figure – this provides all the background/context
+
+```{r}
+selected_states2 <- states %>% 
+  filter(NAME %in% c("Ohio", "Kentucky", "North Carolina", "Virginia", "West Virginia", "Tennessee","Michigan","Wisconsin","Pennsylvania",
+                     "Iowa","Illinois","Missouri","Indiana","Minnesota","Maryland","New York","Arkansas","Louisiana",
+                     "South Carolina","Georgia","Mississippi","Alabama","Florida","Delaware","New Jersey"))
+clipped_physiographic2 <- st_intersection(physiographic, selected_states2)
+syn_box_coords <- data.frame(long = c(-92.953, -74.427, -76.228, -91.634, -92.953),
+                             lat = c(43.556, 43.191, 29.951, 30.264, 43.556))
+inside_regions2 <- st_intersection(clipped_physiographic2, box_polygon)
+outside_regions2 <- st_difference(clipped_physiographic2, box_polygon)
+syn_box_polygon <- st_polygon(list(cbind(syn_box_coords$long, syn_box_coords$lat))) %>% 
+  st_sfc(crs = st_crs(clipped_physiographic2))
+inside_syn_regions <- st_intersection(clipped_physiographic2, syn_box_polygon)
+outside_syn_regions <- st_difference(clipped_physiographic2, syn_box_polygon)
+outside_regions2 <- st_difference(outside_syn_regions, box_polygon)
+inside_syn_colors <- colorRampPalette(brewer.pal(9, "Blues"))(length(unique(inside_syn_regions$PROVINCE)))
+inside_colors2 <- colorRampPalette(brewer.pal(4, "Greens"))(length(unique(inside_regions2$PROVINCE)))
+outside_colors2 <- colorRampPalette(brewer.pal(9, "Reds"))(length(unique(outside_regions2$PROVINCE)))
+inside_palette2 <- setNames(inside_colors2, unique(inside_regions2$PROVINCE))
+inside_syn_palette <- setNames(inside_syn_colors, unique(inside_syn_regions$PROVINCE))
+outside_palette2 <- setNames(outside_colors2, unique(outside_regions2$PROVINCE))
+inside_syn_regions <- inside_syn_regions %>% mutate(color = inside_syn_palette[PROVINCE]) %>%
+  group_by(color) %>%
+  summarise(geometry = st_union(geometry)) %>%
+  ungroup()
+inside_regions2 <- inside_regions2 %>% mutate(color = inside_palette2[PROVINCE]) %>%
+  group_by(color) %>%
+  summarise(geometry = st_union(geometry)) %>%
+  ungroup()
+outside_regions2 <- outside_regions2 %>% mutate(color = "lightgrey") %>%
+  group_by(color) %>%
+  summarise(geometry = st_union(geometry)) %>%
+  ungroup()
+combined_regions2 <- bind_rows(inside_syn_regions, inside_regions2, outside_regions2)
+selected_states2 <- st_transform(selected_states2, crs = 4326)
+combined_regions2 <- st_transform(combined_regions2, crs = 4326)
+syn_box_polygon <- st_transform(syn_box_polygon, crs = 4326)
+syn_box_df <- st_as_sf(syn_box_polygon)
+create_great_circle <- function(lon1, lat1, lon2, lat2) {
+  gc <- gcIntermediate(c(lon1, lat1), c(lon2, lat2), n=100, addStartEnd=TRUE, sp=TRUE)
+  return(gc)
+}
+great_circle_lines <- lapply(1:(nrow(syn_box_coords) - 1), function(i) {
+  create_great_circle(syn_box_coords$long[i], syn_box_coords$lat[i], syn_box_coords$long[i+1], syn_box_coords$lat[i+1])
+})
+great_circle_sf <- do.call(rbind, lapply(great_circle_lines, st_as_sf))
+green_great_circle_lines <- lapply(1:(nrow(box_coords) - 1), function(i) {
+  create_great_circle(box_coords$long[i], box_coords$lat[i], box_coords$long[i+1], box_coords$lat[i+1])
+})
+green_great_circle_sf <- do.call(rbind, lapply(green_great_circle_lines, st_as_sf))
+SynopticDomainMap <- ggplot() +
+  geom_sf(data = combined_regions2, aes(fill = color), color = "black", linewidth = 0, alpha = 1) +
+  scale_fill_identity(name = "Physiographic Regions", 
+                      breaks = c(inside_palette2, inside_syn_palette), 
+                      labels = c(names(inside_palette2), names(inside_syn_palette)), 
+                      guide = "legend") +
+  geom_sf(data = great_circle_sf, color = "darkblue", alpha = 0.5, linewidth = 1.5) +
+  geom_sf(data = green_great_circle_sf, color = "darkgreen", alpha = 0.5, linewidth = 1.5) +
+  geom_sf(data = selected_states2, fill = "NA", color = "black", linewidth = 0.2) +
+  theme_test() +
+  guides(fill = "none") +
+  standardized_theme
+rm(clipped_physiographic2, combined_regions2, great_circle_lines, great_circle_sf, green_great_circle_lines, green_great_circle_sf, inside_regions2, inside_syn_regions, outside_regions2, outside_syn_regions, selected_states2, syn_box_coords, syn_box_df, syn_box_polygon, inside_colors2, inside_palette2, inside_syn_colors, inside_syn_palette, outside_colors2, create_great_circle, outside_palette2)
+
+nc_whatever_for_landuse <- nc_open("./data/netCDF_files/wrfout_2017_control_domain.nc")
+lat <- ncvar_get(nc_whatever_for_landuse, "XLAT")
+lon <- ncvar_get(nc_whatever_for_landuse, "XLONG")
+landuse <- matrix(0, nrow = dim(lat)[1], ncol = dim(lat)[2])
+for (i in 1:100) {
+  for (j in 1:100) {
+    landuse[i, j] <- ncvar_get(nc_whatever_for_landuse, "LU_INDEX", start = c(i, j, 1), count = c(1, 1, 1))
+  }
+}
+elevation <- matrix(0, nrow = dim(lat)[1], ncol = dim(lat)[2])
+for (i in 1:100) {
+  for (j in 1:100) {
+    elevation[i, j] <- ncvar_get(nc_whatever_for_landuse, "HGT", start = c(i, j, 1), count = c(1, 1, 1))
+  }
+}
+soil_type <- matrix(0, nrow = dim(lat)[1], ncol = dim(lat)[2])
+for (i in 1:100) {
+  for (j in 1:100) {
+    soil_type[i, j] <- ncvar_get(nc_whatever_for_landuse, "ISLTYP", start = c(i, j, 1), count = c(1, 1, 1))
+  }
+}
+full_table <- data.frame(
+  lon = as.vector(lon),
+  lat = as.vector(lat),
+  LU_INDEX = as.vector(landuse),
+  ELEVATION = as.vector(elevation),
+  SOIL_TYPE = as.vector(soil_type))
+nc_close(nc_whatever_for_landuse)
+rm(lat, lon, landuse, elevation, soil_type)
+full_table <- full_table %>%
+  mutate(SOIL_TYPE = ifelse(SOIL_TYPE %in% c(2,8,11,14,16), 1, SOIL_TYPE)) %>% 
+  mutate(SOIL_TYPE = recode(SOIL_TYPE, '1' = "Other", '3' = "Sandy Loam", '4' = "Silt Loam", '6' = "Loam")) %>% 
+  mutate(LU_INDEX = ifelse(LU_INDEX %in% c(2,3,5), 1, LU_INDEX)) %>% 
+  mutate(LU_INDEX = ifelse(LU_INDEX %in% c(7,8,9,10,11,12,13,14,15,17), 6, LU_INDEX)) %>% 
+  mutate(LU_INDEX = recode(LU_INDEX, '1' = "Different Forest Types", '4' = "Deciduous Broadleaf Forest", '6' = "Other LU Types", '16' = "Barren or Sparsely Vegetated"))
+prop.table(table(full_table$LU_INDEX))
+prop.table(table(full_table$SOIL_TYPE))
+MODISpoints <- data.frame(
+  lat = c(36.45, 36.45, 36.79, 36.70, 36.5, 36.7, 36.9, 37.18, 37, 38, 37.5, 38.62, 38.25, 37.75, 38.5, 38.25, 37.55, 38.65, 37.378314),
+  lon = c(-80.00, -80.76, -80.00, -80.27, -81.75, -81.15, -80.5, -80, -81.5, -80, -82.5, -82.35, -82, -81.5, -81.25, -80.5, -80.65, -80, -80.524847))
+
+land_use <- ggplot() +
+  geom_point(data = full_table, aes(x = lon, y = lat, color = LU_INDEX), shape = 15, size = 0.85) +
+  scale_color_manual(values = c("Different Forest Types" = "#4361EE",
+                                "Deciduous Broadleaf Forest" = "#80ED99",
+                                "Other LU Types" = "#F28482", 
+                                "Barren or Sparsely Vegetated" = "black"), name = NULL) +
+  geom_point(data = MODISpoints, aes(x = lon, y = lat, shape = "MODIS Validation Sites"), fill = "white", color = "black", size = 1.7) +
+  scale_shape_manual(values = c("MODIS Validation Sites" = 21)) +
+  guides(shape = guide_legend(title = NULL, override.aes = list(size = 5))) +
+  geom_sf(data = combined_regions, color = "black", linewidth = 0.1, alpha = 0) + 
+  geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
+  theme_test() +
+  labs(x = NULL, y = NULL) +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  standardized_theme +
+  theme(legend.position = "bottom", legend.key.size = unit(0.4, "cm"), 
+  legend.text = element_text(size = 8)) +
+  guides(color = guide_legend(nrow = 4, override.aes = list(size = 5)))
+elevation <- ggplot() +
+  geom_point(data = full_table, aes(x = lon, y = lat, color = ELEVATION), shape = 15, size = 0.85) +
+  scale_color_scico(palette = "oslo", name = expression("Elev. (m)")) +
+  geom_sf(data = combined_regions, color = "red", linewidth = 0.5, alpha = 0) + 
+  geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
+  theme_test() +
+  labs(x = NULL, y = NULL) +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  standardized_theme +
+  theme(legend.position = "bottom", legend.key.size = unit(0.4, "cm"),
+  legend.text = element_text(size = 8))
+soil_type <- ggplot() +
+  geom_point(data = full_table, aes(x = lon, y = lat, color = SOIL_TYPE), shape = 15, size = 0.85) +
+  scale_color_manual(values = c("Sandy Loam" = "#EFC457",
+                                "Silt Loam" = "#98710F",
+                                "Loam" = "#653D01", 
+                                "Other" = "purple"), name = NULL) +
+  geom_sf(data = combined_regions, color = "black", linewidth = 0.1, alpha = 0) + 
+  geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
+  theme_test() +
+  labs(x = NULL, y = NULL) +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  theme(legend.position = "bottom", legend.key.size = unit(0.4, "cm"), 
+  legend.text = element_text(size = 8)) +
+  guides(color = guide_legend(nrow = 1, override.aes = list(size = 5)))
+
+figs_234 <- ggarrange(elevation, soil_type, land_use, nrow = 1, ncol = 3, align = "hv")
+#ggsave("2figs_234.pdf", figs_234, width = 15, height = 7, units = "in")
+rm(lat, lon, landuse, land_use, MODISpoints, elevation, full_table, nc_whatever_for_landuse, soil_type)
+```
+
+
+## New Figure 2)
+
+Figs. 2.4 and 2.5 can be combined into a nice 4 panel as well – this conveys all the mechanism, parameters, validation for GPP
+
+```{r}
+modis_gpp_list <- list()
+model_1_gpp_list <- list()
+model_2_gpp_list <- list()
+desired_number_of_files <- 19
+for (i in 1:desired_number_of_files) {
+  modis_file <- sprintf("./data/gpp_validation/modis_point_%03d.csv", i)
+  model_file_1 <- sprintf("./data/gpp_validation/pre_validation_%03d.csv", i)
+  model_file_2 <- sprintf("./data/gpp_validation/validation%03d.csv", i)
+  modis_data <- read.csv(modis_file) %>%
+    dplyr::select(calendar_date, value) %>%
+    mutate(calendar_date = as.Date(calendar_date), GPP_MODIS = value * 1e-4) %>%
+    group_by(calendar_date) %>%
+    summarise(!!paste0("average_gpp_", sprintf("%03d", i)) := mean(GPP_MODIS, na.rm = TRUE), .groups = "drop") %>%
+    mutate(time = as.POSIXct(calendar_date, format="%Y-%m-%d", tz="UTC")) %>%
+    dplyr::select(-calendar_date)
+  model_data_1 <- read.csv(model_file_1) %>%
+    mutate(fixtimes = as.POSIXct(DateTime, format="%Y-%m-%dT%H:%M:%SZ", tz="UTC"), GPP_model_1_kg_per_s = GPP * 1e-3)
+  start_date_2017 <- as.POSIXct("2017-01-01", tz = "UTC")
+  model_data_1_2017_8day <- model_data_1 %>%
+    mutate(time = start_date_2017 + floor(as.numeric(difftime(fixtimes, start_date_2017, units = "days")) / 8) * 8 * 86400) %>%
+    group_by(time) %>%
+    summarize(!!paste0("Model_1_kg_per_8days_", sprintf("%03d", i)) := sum(GPP_model_1_kg_per_s * 3600, na.rm = TRUE), .groups = "drop") %>% 
+    slice(-c(1,n()))
+  start_date_2018 <- as.POSIXct("2018-01-01", tz = "UTC")
+  model_data_1_2018_8day <- model_data_1 %>%
+    mutate(time = start_date_2018 + floor(as.numeric(difftime(fixtimes, start_date_2018, units = "days")) / 8) * 8 * 86400) %>%
+    group_by(time) %>%
+    summarize(!!paste0("Model_1_kg_per_8days_", sprintf("%03d", i)) := sum(GPP_model_1_kg_per_s * 3600, na.rm = TRUE), .groups = "drop") %>% 
+    slice(-c(1,n()))
+  model_data_2 <- read.csv(model_file_2) %>%
+    mutate(fixtimes = as.POSIXct(DateTime, format="%Y-%m-%dT%H:%M:%SZ", tz="UTC"), GPP_model_2_kg_per_s = GPP * 1e-3)
+  start_date_2017 <- as.POSIXct("2017-01-01", tz = "UTC")
+  model_data_2_2017_8day <- model_data_2 %>%
+    mutate(time = start_date_2017 + floor(as.numeric(difftime(fixtimes, start_date_2017, units = "days")) / 8) * 8 * 86400) %>%
+    group_by(time) %>%
+    summarize(!!paste0("Model_2_kg_per_8days_", sprintf("%03d", i)) := sum(GPP_model_2_kg_per_s * 3600, na.rm = TRUE), .groups = "drop") %>% 
+    slice(-c(1,n()))
+  start_date_2018 <- as.POSIXct("2018-01-01", tz = "UTC")
+  model_data_2_2018_8day <- model_data_2 %>%
+    mutate(time = start_date_2018 + floor(as.numeric(difftime(fixtimes, start_date_2018, units = "days")) / 8) * 8 * 86400) %>%
+    group_by(time) %>%
+    summarize(!!paste0("Model_2_kg_per_8days_", sprintf("%03d", i)) := sum(GPP_model_2_kg_per_s * 3600, na.rm = TRUE), .groups = "drop") %>% 
+    slice(-c(1,n()))
+  modis_gpp_list[[i]] <- modis_data
+  model_1_gpp_list[[i]] <- bind_rows(model_data_1_2017_8day, model_data_1_2018_8day)
+  model_2_gpp_list[[i]] <- bind_rows(model_data_2_2017_8day, model_data_2_2018_8day)
+}
+modis_data_all <- Reduce(function(x, y) merge(x, y, by = "time", all = TRUE), modis_gpp_list)
+model_1_data_all <- Reduce(function(x, y) merge(x, y, by = "time", all = TRUE), model_1_gpp_list)
+model_2_data_all <- Reduce(function(x, y) merge(x, y, by = "time", all = TRUE), model_2_gpp_list)
+merged_data <- merge(modis_data_all, model_1_data_all, by = "time", all = TRUE)
+merged_data <- merge(merged_data, model_2_data_all, by = "time", all = TRUE)
+average_modis_gpp <- merged_data %>%
+  pivot_longer(cols = starts_with("average_gpp_"), names_to = "variable", values_to = "gpp_value") %>%
+  group_by(time) %>%
+  summarise(average_modis_gpp = mean(gpp_value, na.rm = TRUE), .groups = "drop")
+average_modeled_gpp_1 <- merged_data %>%
+  pivot_longer(cols = starts_with("Model_1_kg_per_8days_"),names_to = "variable", values_to = "gpp_value") %>%
+  group_by(time) %>%
+  summarise(average_modeled_gpp_1 = mean(gpp_value, na.rm = TRUE), .groups = "drop")
+average_modeled_gpp_2 <- merged_data %>%
+  pivot_longer(cols = starts_with("Model_2_kg_per_8days_"),names_to = "variable", values_to = "gpp_value") %>%
+  group_by(time) %>%
+  summarise(average_modeled_gpp_2 = mean(gpp_value, na.rm = TRUE), .groups = "drop")
+final_data <- merged_data %>%
+  left_join(average_modis_gpp, by = "time") %>%
+  left_join(average_modeled_gpp_1, by = "time") %>%
+  left_join(average_modeled_gpp_2, by = "time") %>%
+  mutate(time = as.Date(time))
+final_data <- na.omit(final_data)
+
+time_plot3 <- ggplot(final_data) +
+  geom_line(aes(x = time, y = average_modis_gpp, color = "MODIS"), linewidth = 0.65) +
+  geom_line(aes(x = time, y = average_modeled_gpp_1, color = "Initial Param."), linewidth = 0.65) +
+  geom_line(aes(x = time, y = average_modeled_gpp_2, color = "Modified Param."), linewidth = 0.65) +
+  labs(x = "Date",
+       y = expression("GPP " * "(" * kg ~ C ~ m^{-2} * " per 8 days" * ")")) +
+  scale_color_manual(values = c("MODIS" = "skyblue", "Initial Param." = "tomato", "Modified Param." = "forestgreen"), name = "") +
+  theme_bw() +
+  xlim(as.Date("2017-01-01"), as.Date("2018-11-02")) +
+  ylim(0, 0.11) +
+  theme(legend.position = "bottom")
+#ggsave("fig_2_plot_sheet.pdf", time_plot3, width = 5, height = 5, units = "in")
+
+##########
+
+
+```
+
+
+## New Figure 3)
+
+Maybe the scenarios could be squeezed into a 1x6, to save some space?
+
+```{r}
+nc_17_001 <- nc_open("./data/netCDF_files/wrfout_2017_t001_domain.nc")
+lat <- ncvar_get(nc_17_001, "XLAT")
+lon <- ncvar_get(nc_17_001, "XLONG")
+landuse <- matrix(0, nrow = dim(lat)[1], ncol = dim(lon)[2])
+for (i in 1:100) {
+  for (j in 1:100) {
+    landuse[i, j] <- ncvar_get(nc_17_001, "LU_INDEX", start = c(i, j, 1), count = c(1, 1, 1))
+  }
+}
+nc_close(nc_17_001)
+LU_graphable.1 <- data.frame(lon = as.vector(lon),
+                             lat = as.vector(lat),
+                             LU_INDEX = as.vector(landuse),
+                             Treatment = "Scenario 1")
+
+nc_17_002 <- nc_open("./data/netCDF_files/wrfout_2017_t002_domain.nc")
+lat <- ncvar_get(nc_17_002, "XLAT")
+lon <- ncvar_get(nc_17_002, "XLONG")
+landuse <- matrix(0, nrow = dim(lat)[1], ncol = dim(lon)[2])
+for (i in 1:100) {
+  for (j in 1:100) {
+    landuse[i, j] <- ncvar_get(nc_17_002, "LU_INDEX", start = c(i, j, 1), count = c(1, 1, 1))
+  }
+}
+nc_close(nc_17_002)
+LU_graphable.2 <- data.frame(lon = as.vector(lon),
+                             lat = as.vector(lat),
+                             LU_INDEX = as.vector(landuse),
+                             Treatment = "Scenario 2")
+
+nc_17_003 <- nc_open("./data/netCDF_files/wrfout_2017_t003_domain.nc")
+lat <- ncvar_get(nc_17_003, "XLAT")
+lon <- ncvar_get(nc_17_003, "XLONG")
+landuse <- matrix(0, nrow = dim(lat)[1], ncol = dim(lon)[2])
+for (i in 1:100) {
+  for (j in 1:100) {
+    landuse[i, j] <- ncvar_get(nc_17_003, "LU_INDEX", start = c(i, j, 1), count = c(1, 1, 1))
+  }
+}
+nc_close(nc_17_003)
+LU_graphable.3 <- data.frame(lon = as.vector(lon),
+                             lat = as.vector(lat),
+                             LU_INDEX = as.vector(landuse),
+                             Treatment = "Scenario 3")
+
+nc_17_004 <- nc_open("./data/netCDF_files/wrfout_2017_t004_domain.nc")
+lat <- ncvar_get(nc_17_004, "XLAT")
+lon <- ncvar_get(nc_17_004, "XLONG")
+landuse <- matrix(0, nrow = dim(lat)[1], ncol = dim(lon)[2])
+for (i in 1:100) {
+  for (j in 1:100) {
+    landuse[i, j] <- ncvar_get(nc_17_004, "LU_INDEX", start = c(i, j, 1), count = c(1, 1, 1))
+  }
+}
+nc_close(nc_17_004)
+LU_graphable.4 <- data.frame(lon = as.vector(lon),
+                             lat = as.vector(lat),
+                             LU_INDEX = as.vector(landuse),
+                             Treatment = "Scenario 4")
+
+
+nc_17_005 <- nc_open("./data/netCDF_files/wrfout_2017_t005_domain.nc")
+lat <- ncvar_get(nc_17_005, "XLAT")
+lon <- ncvar_get(nc_17_005, "XLONG")
+landuse <- matrix(0, nrow = dim(lat)[1], ncol = dim(lon)[2])
+for (i in 1:100) {
+  for (j in 1:100) {
+    landuse[i, j] <- ncvar_get(nc_17_005, "LU_INDEX", start = c(i, j, 1), count = c(1, 1, 1))
+  }
+}
+nc_close(nc_17_005)
+LU_graphable.5 <- data.frame(lon = as.vector(lon),
+                             lat = as.vector(lat),
+                             LU_INDEX = as.vector(landuse),
+                             Treatment = "Scenario 5")
+
+nc_17_006 <- nc_open("./data/netCDF_files/wrfout_2017_t006_domain.nc")
+lat <- ncvar_get(nc_17_006, "XLAT")
+lon <- ncvar_get(nc_17_006, "XLONG")
+landuse <- matrix(0, nrow = dim(lat)[1], ncol = dim(lon)[2])
+for (i in 1:100) {
+  for (j in 1:100) {
+    landuse[i, j] <- ncvar_get(nc_17_006, "LU_INDEX", start = c(i, j, 1), count = c(1, 1, 1))
+  }
+}
+nc_close(nc_17_006)
+LU_graphable.6 <- data.frame(lon = as.vector(lon),
+                             lat = as.vector(lat),
+                             LU_INDEX = as.vector(landuse),
+                             Treatment = "Scenario 6")
+
+LU_maps <- bind_rows(LU_graphable.1, LU_graphable.2, LU_graphable.3, LU_graphable.4, LU_graphable.5, LU_graphable.6)
+rm(LU_graphable.1, LU_graphable.2, LU_graphable.3, LU_graphable.4, LU_graphable.5, LU_graphable.6)
+
+
+LU_maps <- LU_maps %>%
+  mutate(LU_INDEX = ifelse(LU_INDEX %in% c(2,3,5), 1, LU_INDEX)) %>% 
+  mutate(LU_INDEX = ifelse(LU_INDEX %in% c(7,8,9,10,11,12,13,14,15,17), 6, LU_INDEX)) %>% 
+  mutate(LU_INDEX = recode(LU_INDEX, '1' = "Different Forest Types", '4' = "Deciduous Broadleaf Forest", '6' = "Other LU Types", '16' = "Barren or Sparsely Vegetated"))
+
+LU_maps_plot <- ggplot() +
+  geom_point(data = LU_maps, aes(x = lon, y = lat, color = LU_INDEX), shape = 15, size = 0.33) +
+  scale_color_manual(values = c("Different Forest Types" = "#4361EE",
+                                "Deciduous Broadleaf Forest" = "#80ED99",
+                                "Other LU Types" = "#F28482", 
+                                "Barren or Sparsely Vegetated" = "black"), name = NULL) +
+  geom_sf(data = combined_regions, color = "purple", linewidth = 0.01, alpha = 0) + 
+  geom_sf(data = selected_states, fill = "NA", color = "grey", linewidth = 0.03, alpha = 0.5) +
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
+  theme_test() +
+  facet_wrap(~ Treatment, nrow = 1) +
+  labs(x = NULL, y = NULL) +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  #standardized_theme +
+  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "bottom", legend.text = element_text(size = 10)) +
+  guides(color = guide_legend(override.aes = list(size = 6)))
+
+
+#ggsave("~/Desktop/FIG3_test.pdf", LU_maps_plot, width = 11.25, height = 2.5, units = "in")
+
+
+```
+
+
+## New Figure 4)
+Make an 8 panel map figure, with VPD, SW, SM, and GPP; this is probably pretty important for motivating linear models and Fig. 3.20.
+
+```{r}
+require(data.table)
+require(ggnewscale)
+require(patchwork)
+
+## FULL CTRL DATA ##
+## (1) Mean_CTRL_VT >= 273 (done in RDS to CSV script)
+## (2) PSN > 2 (done below)
+## SO, AFTER REMOVING "FROZEN," "DEAD" POINTS:
+
+ctrl_17 <- read.csv("./data/csvs/all_points/December2025_17.001_all_points.csv") %>% filter(Mean_CTRL_PSN > 2)
+ctrl_18 <- read.csv("./data/csvs/all_points/December2025_18.001_all_points.csv") %>% filter(Mean_CTRL_PSN > 2)
+
+fig_4_df_17 <- ctrl_17 %>% mutate(Year = 2017) %>% select(Latitude, Longitude, Year, Mean_CTRL_VT, Mean_CTRL_SMOIS, Mean_CTRL_APAR, Mean_CTRL_VPD, Mean_CTRL_PSN) %>% reshape2::melt(id.vars = c("Latitude", "Longitude", "Year"), variable.name = "variable", value.name = "value")
+fig_4_df_18 <- ctrl_18 %>% mutate(Year = 2018) %>% select(Latitude, Longitude, Year, Mean_CTRL_VT, Mean_CTRL_SMOIS, Mean_CTRL_APAR, Mean_CTRL_VPD, Mean_CTRL_PSN) %>% reshape2::melt(id.vars = c("Latitude", "Longitude", "Year"), variable.name = "variable", value.name = "value")
+fig_4_df <- full_join(fig_4_df_17, fig_4_df_18)
+
+fig_4_df <- fig_4_df %>% mutate(variable = recode(variable, 'Mean_CTRL_VT' = "Veg Temp (K)", 'Mean_CTRL_SMOIS' = "SM (m3/m3)", 'Mean_CTRL_APAR' = "APAR (W/m2)", 'Mean_CTRL_VPD' = "VPD (Pa)", 'Mean_CTRL_PSN' = "GPP (umol/m2/s-1)"))
+
+
+palettes <- c("Veg Temp (K)"        = "roma",
+              "SM (m3/m3)"          = "oslo",
+              "APAR (W/m2)"         = "lajolla",
+              "VPD (Pa)"            = "batlow",
+              "GPP (umol/m2/s-1)"   = "tokyo")
+
+legend_labels <- c("Veg Temp (K)"        = "VegTemp",
+                   "SM (m3/m3)"          = "SM",
+                   "APAR (W/m2)"         = "APAR",
+                   "VPD (Pa)"            = "VPD",
+                   "GPP (umol/m2/s-1)"   = "GPP")
+
+ctrls <- ggplot()
+for (c in unique(fig_4_df$variable)) {
+  df <- fig_4_df %>% filter(variable == c)
+  ctrls <- ctrls + new_scale_color() + geom_point(data = df, aes(x = Longitude, y = Latitude, color = value), shape = 15, size = 0.25) +
+  scale_color_scico(palette = palettes[c], direction = ifelse(palettes[c] %in% c("roma", "oslo"), -1, 1), name = paste(legend_labels[c]))
+}
+ctrl_plot <- ctrls +
+  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
+  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
+  theme_test() +
+  facet_grid(Year ~ variable) +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  standardized_theme +
+  theme(legend.position = "bottom", legend.key.width = unit(0.62, "cm"), axis.title.x = element_blank(), axis.title.y = element_blank())
+
+
+#ggsave("~/Desktop/new_ctrl_figure.pdf", ctrl_plot, width = 10, height = 4.5, units = "in")
+
+
+```
+
+
+## MAKING INSIDE DEFORESTATION DATA FRAME:
+
+```{r}
+inside_18.001 <- read.csv("./data/csvs/deforested/December2025_18.001_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 1) %>% select(-X)
+inside_18.002 <- read.csv("./data/csvs/deforested/December2025_18.002_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 2) %>% select(-X)
+inside_18.003 <- read.csv("./data/csvs/deforested/December2025_18.003_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 3) %>% select(-X)
+inside_18.004 <- read.csv("./data/csvs/deforested/December2025_18.004_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 4) %>% select(-X)
+inside_18.005 <- read.csv("./data/csvs/deforested/December2025_18.005_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 5) %>% select(-X)
+inside_18.006 <- read.csv("./data/csvs/deforested/December2025_18.006_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 6) %>% select(-X)
+
+inside_17.001 <- read.csv("./data/csvs/deforested/December2025_17.001_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 1) %>% select(-X)
+inside_17.002 <- read.csv("./data/csvs/deforested/December2025_17.002_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 2) %>% select(-X)
+inside_17.003 <- read.csv("./data/csvs/deforested/December2025_17.003_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 3) %>% select(-X)
+inside_17.004 <- read.csv("./data/csvs/deforested/December2025_17.004_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 4) %>% select(-X)
+inside_17.005 <- read.csv("./data/csvs/deforested/December2025_17.005_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 5) %>% select(-X)
+inside_17.006 <- read.csv("./data/csvs/deforested/December2025_17.006_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 6) %>% select(-X)
+inside <- bind_rows(inside_18.001, inside_18.002, inside_18.003, inside_18.004, inside_18.005, inside_18.006, inside_17.001, inside_17.002, inside_17.003, inside_17.004, inside_17.005, inside_17.006)
+
+inside_ALBEDO_SWDOWN_18.001 <- read.csv("./data/csvs/deforested/December2025_18.001_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 1) %>% select(-X)
+inside_ALBEDO_SWDOWN_18.002 <- read.csv("./data/csvs/deforested/December2025_18.002_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 2) %>% select(-X)
+inside_ALBEDO_SWDOWN_18.003 <- read.csv("./data/csvs/deforested/December2025_18.003_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 3) %>% select(-X)
+inside_ALBEDO_SWDOWN_18.004 <- read.csv("./data/csvs/deforested/December2025_18.004_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 4) %>% select(-X)
+inside_ALBEDO_SWDOWN_18.005 <- read.csv("./data/csvs/deforested/December2025_18.005_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 5) %>% select(-X)
+inside_ALBEDO_SWDOWN_18.006 <- read.csv("./data/csvs/deforested/December2025_18.006_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 6) %>% select(-X)
+
+inside_ALBEDO_SWDOWN_17.001 <- read.csv("./data/csvs/deforested/December2025_17.001_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 1) %>% select(-X)
+inside_ALBEDO_SWDOWN_17.002 <- read.csv("./data/csvs/deforested/December2025_17.002_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 2) %>% select(-X)
+inside_ALBEDO_SWDOWN_17.003 <- read.csv("./data/csvs/deforested/December2025_17.003_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 3) %>% select(-X)
+inside_ALBEDO_SWDOWN_17.004 <- read.csv("./data/csvs/deforested/December2025_17.004_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 4) %>% select(-X)
+inside_ALBEDO_SWDOWN_17.005 <- read.csv("./data/csvs/deforested/December2025_17.005_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 5) %>% select(-X)
+inside_ALBEDO_SWDOWN_17.006 <- read.csv("./data/csvs/deforested/December2025_17.006_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 6) %>% select(-X)
+inside_ALBEDO_SWDOWN <- bind_rows(inside_ALBEDO_SWDOWN_18.001, inside_ALBEDO_SWDOWN_18.002, inside_ALBEDO_SWDOWN_18.003, inside_ALBEDO_SWDOWN_18.004, inside_ALBEDO_SWDOWN_18.005, inside_ALBEDO_SWDOWN_18.006, inside_ALBEDO_SWDOWN_17.001, inside_ALBEDO_SWDOWN_17.002, inside_ALBEDO_SWDOWN_17.003, inside_ALBEDO_SWDOWN_17.004, inside_ALBEDO_SWDOWN_17.005, inside_ALBEDO_SWDOWN_17.006)
+
+
+inside_VERTICAL_WS_18.001 <- read.csv("./data/csvs/July2025/July2025_18.001_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 1) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+inside_VERTICAL_WS_18.002 <- read.csv("./data/csvs/July2025/July2025_18.002_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 2) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+inside_VERTICAL_WS_18.003 <- read.csv("./data/csvs/July2025/July2025_18.003_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 3) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+inside_VERTICAL_WS_18.004 <- read.csv("./data/csvs/July2025/July2025_18.004_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 4) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+inside_VERTICAL_WS_18.005 <- read.csv("./data/csvs/July2025/July2025_18.005_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 5) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+inside_VERTICAL_WS_18.006 <- read.csv("./data/csvs/July2025/July2025_18.006_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 6) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+
+inside_VERTICAL_WS_17.001 <- read.csv("./data/csvs/July2025/July2025_17.001_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 1) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+inside_VERTICAL_WS_17.002 <- read.csv("./data/csvs/July2025/July2025_17.002_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 2) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+inside_VERTICAL_WS_17.003 <- read.csv("./data/csvs/July2025/July2025_17.003_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 3) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+inside_VERTICAL_WS_17.004 <- read.csv("./data/csvs/July2025/July2025_17.004_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 4) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+inside_VERTICAL_WS_17.005 <- read.csv("./data/csvs/July2025/July2025_17.005_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 5) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+inside_VERTICAL_WS_17.006 <- read.csv("./data/csvs/July2025/July2025_17.006_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 6) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+inside_VERTICAL_WS <- bind_rows(inside_VERTICAL_WS_18.001, inside_VERTICAL_WS_18.002, inside_VERTICAL_WS_18.003, inside_VERTICAL_WS_18.004, inside_VERTICAL_WS_18.005, inside_VERTICAL_WS_18.006, inside_VERTICAL_WS_17.001, inside_VERTICAL_WS_17.002, inside_VERTICAL_WS_17.003, inside_VERTICAL_WS_17.004, inside_VERTICAL_WS_17.005, inside_VERTICAL_WS_17.006)
+
+
+inside <- full_join(inside, inside_ALBEDO_SWDOWN, by = c("Latitude", "Longitude", "treatment", "year", "tLU_INDEX", "cLU_INDEX"))
+inside <- full_join(inside, inside_VERTICAL_WS, by = c("Latitude", "Longitude", "treatment", "year", "tLU_INDEX", "cLU_INDEX"))
+
+rm(inside_ALBEDO_SWDOWN, inside_VERTICAL_WS, inside_VERTICAL_WS_17.001, inside_VERTICAL_WS_17.002, inside_VERTICAL_WS_17.003, inside_VERTICAL_WS_17.004, inside_VERTICAL_WS_17.005, inside_VERTICAL_WS_17.006,  inside_VERTICAL_WS_18.001, inside_VERTICAL_WS_18.002, inside_VERTICAL_WS_18.003, inside_VERTICAL_WS_18.004, inside_VERTICAL_WS_18.005, inside_VERTICAL_WS_18.006, inside_ALBEDO_SWDOWN_17.001, inside_ALBEDO_SWDOWN_17.002, inside_ALBEDO_SWDOWN_17.003, inside_ALBEDO_SWDOWN_17.004, inside_ALBEDO_SWDOWN_17.005, inside_ALBEDO_SWDOWN_17.006, inside_ALBEDO_SWDOWN_18.001, inside_ALBEDO_SWDOWN_18.002, inside_ALBEDO_SWDOWN_18.003, inside_ALBEDO_SWDOWN_18.004, inside_ALBEDO_SWDOWN_18.005, inside_ALBEDO_SWDOWN_18.006, inside_17.001, inside_17.002, inside_17.003, inside_17.004, inside_17.005, inside_17.006, inside_18.001, inside_18.002, inside_18.003, inside_18.004, inside_18.005, inside_18.006)
+
+## MAKING THETA BUCKETS INSIDE##
+calculate_polar <- function(lat, lon) {
+  r <- distHaversine(c(-81.21869, 37.57799), c(lon, lat))
+  theta <- atan2(lat - 37.57799, lon - -81.21869)
+  return(c(r, theta))}
+inside <- inside %>% rowwise() %>%
+  mutate(polar = list(calculate_polar(Latitude, Longitude)),
+         r_km = (polar[1]/1000),
+         theta = polar[2]) %>%
+  select(-polar) %>% ungroup()
+inside <- inside %>% mutate(theta_bucket = case_when(theta >= 0 & theta < pi/4 ~ "bucket1",
+                                                           theta >= pi/4 & theta < pi/2 ~ "bucket2",
+                                                           theta >= pi/2 & theta < 3*pi/4 ~ "bucket3",
+                                                           theta >= 3*pi/4 & theta <= pi ~ "bucket4",
+                                                           theta < -3*pi/4 & theta >= -pi ~ "bucket5",
+                                                           theta < -pi/2 & theta >= -3*pi/4 ~ "bucket6",
+                                                           theta < -pi/4 & theta >= -pi/2 ~ "bucket7",
+                                                           theta < 0 & theta >= -pi/4 ~ "bucket8"))
+
+## ADDING IN SOIL TYPE & ELEVATION##
+nc_whatever <- nc_open("./data/netCDF_files/wrfout_2017_control_domain.nc")
+lat <- ncvar_get(nc_whatever, "XLAT")
+lon <- ncvar_get(nc_whatever, "XLONG")
+elevation <- matrix(0, nrow = dim(lat)[1], ncol = dim(lat)[2])
+for (i in 1:100) {
+  for (j in 1:100) {
+    elevation[i, j] <- ncvar_get(nc_whatever, "HGT", start = c(i, j, 1), count = c(1, 1, 1))
+  }
+}
+soil_type <- matrix(0, nrow = dim(lat)[1], ncol = dim(lat)[2])
+for (i in 1:100) {
+  for (j in 1:100) {
+    soil_type[i, j] <- ncvar_get(nc_whatever, "ISLTYP", start = c(i, j, 1), count = c(1, 1, 1))
+  }
+}
+full_table <- data.frame(
+  Longitude = as.vector(lon),
+  Latitude = as.vector(lat),
+  ELEVATION = as.vector(elevation),
+  SOIL.TYPE = as.vector(soil_type))
+nc_close(nc_whatever)
+rm(lat, lon, elevation, soil_type)
+full_table <- full_table %>%
+  mutate(SOIL.TYPE = ifelse(SOIL.TYPE %in% c(2,8,11,14,16), 1, SOIL.TYPE)) %>% 
+  mutate(SOIL.TYPE = recode(SOIL.TYPE, '1' = "Other", '3' = "Sandy Loam", '4' = "Silt Loam", '6' = "Loam"))
+prop.table(table(full_table$SOIL.TYPE))
+
+full_table2 <- full_table %>% mutate(Latitude = round(Latitude, 4), Longitude = round(Longitude, 4))
+
+inside <- inside %>% mutate(Latitude = round(Latitude, 4), Longitude = round(Longitude, 4))
+
+inside <- full_join(inside, full_table2, by = c("Latitude", "Longitude"))
+inside <- inside %>% filter(!is.na(Mean_CTRL_ET))
+
+## CREATING NORM() REGRESSIONS
+inside <- inside %>% mutate(normalized_ctrl_SW = Mean_CTRL_SWDOWN / mean(Mean_CTRL_SWDOWN, na.rm = TRUE) - 1,
+                            normalized_ctrl_GT = Mean_CTRL_GT / mean(Mean_CTRL_GT, na.rm = TRUE) - 1,
+                            normalized_ctrl_VPD = Mean_CTRL_VPD / mean(Mean_CTRL_VPD, na.rm = TRUE) - 1,
+                            normalized_ctrl_SM = Mean_CTRL_SMOIS / mean(Mean_CTRL_SMOIS, na.rm = TRUE) - 1,
+                            normalized_ctrl_ET = Mean_CTRL_ET / mean(Mean_CTRL_ET, na.rm = TRUE) - 1,
+                            normalized_ctrl_PRCP = Mean_CTRL_RAINNC / mean(Mean_CTRL_RAINNC, na.rm = TRUE) - 1,
+                            normalized_ctrl_W = Mean_CTRL_W / mean(Mean_CTRL_W, na.rm = TRUE) - 1)
+```
+
+
+## CONSTRUCTING OUTSIDE DATA FRAME
+
+```{r}
+outside_luc1.17 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.001_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 1)
+outside_luc2.17 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.002_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 2)
+outside_luc3.17 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.003_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 3)
+outside_luc4.17 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.004_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 4)
+outside_luc5.17 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.005_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 5)
+outside_luc6.17 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.006_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 6)
+outside_luc1.18 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.001_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 1)
+outside_luc2.18 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.002_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 2)
+outside_luc3.18 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.003_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 3)
+outside_luc4.18 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.004_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 4)
+outside_luc5.18 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.005_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 5)
+outside_luc6.18 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.006_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 6)
+outside <- bind_rows(outside_luc1.17, outside_luc2.17, outside_luc3.17, outside_luc4.17, outside_luc5.17, outside_luc6.17,
+                    outside_luc1.18, outside_luc2.18, outside_luc3.18, outside_luc4.18, outside_luc5.18, outside_luc6.18)
+
+outside_ALBEDO_SWDOWN_18.001 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.001_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 1) %>% select(-X)
+outside_ALBEDO_SWDOWN_18.002 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.002_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 2) %>% select(-X)
+outside_ALBEDO_SWDOWN_18.003 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.003_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 3) %>% select(-X)
+outside_ALBEDO_SWDOWN_18.004 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.004_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 4) %>% select(-X)
+outside_ALBEDO_SWDOWN_18.005 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.005_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 5) %>% select(-X)
+outside_ALBEDO_SWDOWN_18.006 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.006_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 6) %>% select(-X)
+
+outside_ALBEDO_SWDOWN_17.001 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.001_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 1) %>% select(-X)
+outside_ALBEDO_SWDOWN_17.002 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.002_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 2) %>% select(-X)
+outside_ALBEDO_SWDOWN_17.003 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.003_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 3) %>% select(-X)
+outside_ALBEDO_SWDOWN_17.004 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.004_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 4) %>% select(-X)
+outside_ALBEDO_SWDOWN_17.005 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.005_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 5) %>% select(-X)
+outside_ALBEDO_SWDOWN_17.006 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.006_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 6) %>% select(-X)
+outside_ALBEDO_SWDOWN <- bind_rows(outside_ALBEDO_SWDOWN_18.001, outside_ALBEDO_SWDOWN_18.002, outside_ALBEDO_SWDOWN_18.003, outside_ALBEDO_SWDOWN_18.004, outside_ALBEDO_SWDOWN_18.005, outside_ALBEDO_SWDOWN_18.006, outside_ALBEDO_SWDOWN_17.001, outside_ALBEDO_SWDOWN_17.002, outside_ALBEDO_SWDOWN_17.003, outside_ALBEDO_SWDOWN_17.004, outside_ALBEDO_SWDOWN_17.005, outside_ALBEDO_SWDOWN_17.006)
+
+
+outside_VERTICAL_WS_18.001 <- read.csv("./data/csvs/July2025/July2025_18.001_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 1) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+outside_VERTICAL_WS_18.002 <- read.csv("./data/csvs/July2025/July2025_18.002_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 2) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+outside_VERTICAL_WS_18.003 <- read.csv("./data/csvs/July2025/July2025_18.003_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 3) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+outside_VERTICAL_WS_18.004 <- read.csv("./data/csvs/July2025/July2025_18.004_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 4) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+outside_VERTICAL_WS_18.005 <- read.csv("./data/csvs/July2025/July2025_18.005_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 5) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+outside_VERTICAL_WS_18.006 <- read.csv("./data/csvs/July2025/July2025_18.006_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 6) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+
+outside_VERTICAL_WS_17.001 <- read.csv("./data/csvs/July2025/July2025_17.001_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 1) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+outside_VERTICAL_WS_17.002 <- read.csv("./data/csvs/July2025/July2025_17.002_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 2) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+outside_VERTICAL_WS_17.003 <- read.csv("./data/csvs/July2025/July2025_17.003_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 3) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+outside_VERTICAL_WS_17.004 <- read.csv("./data/csvs/July2025/July2025_17.004_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 4) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+outside_VERTICAL_WS_17.005 <- read.csv("./data/csvs/July2025/July2025_17.005_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 5) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+outside_VERTICAL_WS_17.006 <- read.csv("./data/csvs/July2025/July2025_17.006_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 6) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+outside_VERTICAL_WS <- bind_rows(outside_VERTICAL_WS_18.001, outside_VERTICAL_WS_18.002, outside_VERTICAL_WS_18.003, outside_VERTICAL_WS_18.004, outside_VERTICAL_WS_18.005, outside_VERTICAL_WS_18.006, outside_VERTICAL_WS_17.001, outside_VERTICAL_WS_17.002, outside_VERTICAL_WS_17.003, outside_VERTICAL_WS_17.004, outside_VERTICAL_WS_17.005, outside_VERTICAL_WS_17.006)
+
+
+outside <- full_join(outside, outside_ALBEDO_SWDOWN, by = c("Latitude", "Longitude", "treatment", "year", "tLU_INDEX", "cLU_INDEX"))
+outside <- full_join(outside, outside_VERTICAL_WS, by = c("Latitude", "Longitude", "treatment", "year", "tLU_INDEX", "cLU_INDEX"))
+
+
+rm(outside_luc1.17, outside_luc2.17, outside_luc3.17, outside_luc4.17, outside_luc5.17, outside_luc6.17, outside_luc1.18, outside_luc2.18, outside_luc3.18, outside_luc4.18, outside_luc5.18, outside_luc6.18, outside_ALBEDO_SWDOWN_18.001, outside_ALBEDO_SWDOWN_18.002, outside_ALBEDO_SWDOWN_18.003, outside_ALBEDO_SWDOWN_18.004, outside_ALBEDO_SWDOWN_18.005, outside_ALBEDO_SWDOWN_18.006, outside_ALBEDO_SWDOWN_17.001, outside_ALBEDO_SWDOWN_17.002, outside_ALBEDO_SWDOWN_17.003, outside_ALBEDO_SWDOWN_17.004, outside_ALBEDO_SWDOWN_17.005, outside_ALBEDO_SWDOWN_17.006, outside_VERTICAL_WS_18.001, outside_VERTICAL_WS_18.002, outside_VERTICAL_WS_18.003, outside_VERTICAL_WS_18.004, outside_VERTICAL_WS_18.005, outside_VERTICAL_WS_18.006, outside_VERTICAL_WS_17.001, outside_VERTICAL_WS_17.002, outside_VERTICAL_WS_17.003, outside_VERTICAL_WS_17.004, outside_VERTICAL_WS_17.005, outside_VERTICAL_WS_17.006)
+
+## MASKING OUT INTERSTITIAL PIXELS IN SCENARIOS 3 AND 4 ##
+
+mask003 <- data.frame(long = c(-80.13846, -80.17999, -81.60565, -82.27844, -82.25146, -80.82397, -80.13846),
+                      lat = c(38.33989, 37.80225, 36.78333, 36.80656, 37.34526, 38.37086, 38.33989))
+mask004 <- data.frame(long = c(-80.13846, -80.18411, -81.46793, -82.2084, -82.17819, -80.89255, -80.13846),
+                      lat = c(38.33989, 37.74847, 36.83211, 36.85827, 37.4508, 38.37374, 38.33989))
+mask003_sf <- st_polygon(list(as.matrix(mask003))) %>% st_sfc(crs = 4326)
+mask004_sf <- st_polygon(list(as.matrix(mask004))) %>% st_sfc(crs = 4326)
+outside_sf <- st_as_sf(outside, coords = c("Longitude", "Latitude"), crs = 4326)
+inside_003 <- st_within(outside_sf, mask003_sf, sparse = FALSE)[,1]
+inside_004 <- st_within(outside_sf, mask004_sf, sparse = FALSE)[,1]
+
+keep_point <- case_when(outside_sf$treatment == 3 ~ !inside_003, outside_sf$treatment == 4 ~ !inside_004, TRUE ~ TRUE)
+outside_sf <- outside_sf %>% ungroup()
+outside_filtered <- outside_sf[keep_point, ] %>% mutate(Longitude = st_coordinates(.)[,1], Latitude = st_coordinates(.)[,2]) %>% st_drop_geometry() %>% filter(delta_VT_t00X <= 1, delta_VT_t00X >= -1)
+
+rm(mask003, mask003_sf, mask004, mask004_sf, outside_sf)
+
+## MAKING DISTANCE TO DEFORESTATION COLUMN ##
+lu_coords <- sprintf("./data/csvs/lat_lons/17_%03d_lat_lon.csv", 1:6)
+acsvs_17 <- lapply(lu_coords, read.csv)
+csv1 <- acsvs_17[[1]] %>% mutate(t00X_index = row_number(), treatment = 1)
+csv2 <- acsvs_17[[2]] %>% mutate(t00X_index = row_number(), treatment = 2)
+csv3 <- acsvs_17[[3]] %>% mutate(t00X_index = row_number(), treatment = 3)
+csv4 <- acsvs_17[[4]] %>% mutate(t00X_index = row_number(), treatment = 4)
+csv5 <- acsvs_17[[5]] %>% mutate(t00X_index = row_number(), treatment = 5)
+csv6 <- acsvs_17[[6]] %>% mutate(t00X_index = row_number(), treatment = 6)
+lu_16_t001 <- csv1 %>% filter(LU_INDEX == 16) %>% filter(!(t00X_index == 2390)) %>% select(Longitude, Latitude)
+lu_16_t002 <- csv2 %>% filter(LU_INDEX == 16) %>% filter(!(t00X_index == 2381)) %>% select(Longitude, Latitude)
+lu_16_t003 <- csv3 %>% filter(LU_INDEX == 16) %>% filter(!(t00X_index == 2379)) %>% select(Longitude, Latitude)
+lu_16_t004 <- csv4 %>% filter(LU_INDEX == 16) %>% filter(!(t00X_index == 2381)) %>% select(Longitude, Latitude)
+lu_16_t005 <- csv5 %>% filter(LU_INDEX == 16) %>% select(Longitude, Latitude)
+lu_16_t006 <- csv6 %>% filter(LU_INDEX == 16) %>% filter(!(t00X_index == 2389)) %>% select(Longitude, Latitude)
+csv1$distance_to_LU16_meters <- apply(csv1[, c("Longitude", "Latitude")], 1, function(coord) {
+  min(distHaversine(coord, lu_16_t001))})
+csv2$distance_to_LU16_meters <- apply(csv2[, c("Longitude", "Latitude")], 1, function(coord) {
+  min(distHaversine(coord, lu_16_t002))})
+csv3$distance_to_LU16_meters <- apply(csv3[, c("Longitude", "Latitude")], 1, function(coord) {
+  min(distHaversine(coord, lu_16_t003))})
+csv4$distance_to_LU16_meters <- apply(csv4[, c("Longitude", "Latitude")], 1, function(coord) {
+  min(distHaversine(coord, lu_16_t004))})
+csv5$distance_to_LU16_meters <- apply(csv5[, c("Longitude", "Latitude")], 1, function(coord) {
+  min(distHaversine(coord, lu_16_t005))})
+csv6$distance_to_LU16_meters <- apply(csv6[, c("Longitude", "Latitude")], 1, function(coord) {
+  min(distHaversine(coord, lu_16_t006))})
+distance_csvs <- bind_rows(csv1, csv2, csv3, csv4, csv5, csv6)
+distance_csvs <- distance_csvs %>% filter(LU_INDEX == 4) %>% select(-LU_INDEX, -t00X_index)
+outside_filtered <- full_join(outside_filtered, distance_csvs, by = c("Latitude", "Longitude", "treatment"))
+outside_filtered <- outside_filtered %>% filter(!is.na(X)) %>% mutate(distance_to_LU16_km = distance_to_LU16_meters / 1000)
+rm(acsvs_17, csv1, csv2, csv3, csv4, csv5, csv6, lu_16_t001, lu_16_t002, lu_16_t003, lu_16_t004, lu_16_t005, lu_16_t006, distance_csvs)
+
+## MAKING THETA BUCKETS ##
+calculate_polar <- function(lat, lon) {
+  r <- distHaversine(c(-81.21869, 37.57799), c(lon, lat))
+  theta <- atan2(lat - 37.57799, lon - -81.21869)
+  return(c(r, theta))}
+outside_filtered <- outside_filtered %>% rowwise() %>%
+  mutate(polar = list(calculate_polar(Latitude, Longitude)),
+         r = polar[1],
+         theta = polar[2]) %>%
+  select(-polar) %>% ungroup()
+outside_filtered <- outside_filtered %>% mutate(theta_bucket = case_when(theta >= 0 & theta < pi/4 ~ "bucket1",
+                                                           theta >= pi/4 & theta < pi/2 ~ "bucket2",
+                                                           theta >= pi/2 & theta < 3*pi/4 ~ "bucket3",
+                                                           theta >= 3*pi/4 & theta <= pi ~ "bucket4",
+                                                           theta < -3*pi/4 & theta >= -pi ~ "bucket5",
+                                                           theta < -pi/2 & theta >= -3*pi/4 ~ "bucket6",
+                                                           theta < -pi/4 & theta >= -pi/2 ~ "bucket7",
+                                                           theta < 0 & theta >= -pi/4 ~ "bucket8"))
+
+## CREATING NORM() REGRESSIONS
+outside_filtered <- outside_filtered %>% mutate(normalized_ctrl_GPP = Mean_CTRL_PSN / mean(Mean_CTRL_PSN, na.rm = TRUE) - 1,
+                                                normalized_ctrl_APAR = Mean_CTRL_APAR / mean(Mean_CTRL_APAR, na.rm = TRUE) - 1,
+                                                normalized_ctrl_SM = Mean_CTRL_SMOIS / mean(Mean_CTRL_SMOIS) - 1,
+                                                normalized_ctrl_VPD = Mean_CTRL_VPD / mean(Mean_CTRL_VPD, na.rm = TRUE) - 1,
+                                                normalized_ctrl_VT = Mean_CTRL_VT / mean(Mean_CTRL_VT, na.rm = TRUE) - 1)
+```
+
+
+
+
+
+
+
+
+
+######### PLOTS #########
+
+
+## BIG BEAUTIFUL PLOT (+ Delta GPP Plot)
+
+```{r}
+range(outside_filtered$delta_VPD_t00X) ## -93, 93
+range(outside_filtered$delta_VT_t00X) ## -0.91, 0.91
+range(outside_filtered$delta_SMOIS_t00X) ## -0.03, 0.03 ## -0.032, 0.032
+range(outside_filtered$delta_APAR_t00X) ## -4.60, 4.60
+range(outside_filtered$delta_PSN_t00X) ## -0.91, 0.91 ## -0.98, 0.98
+
+range(inside$delta_VPD_t00X) ## -93, 93
+range(inside$delta_GT_t00X) ## -0.91, 0.91
+range(inside$delta_SMOIS_t00X) ## -0.03, 0.03 ## -0.032, 0.032
+range(inside$delta_SWDOWN_t00X) ## -4.60, 4.60
+range(inside$delta_PSN_t00X) ## -0.91, 0.91 ## -0.98, 0.98
+
+
+mask001 <- data.frame(long = c(-80.13846, -80.17999, -81.60565, -82.27844, -82.25146, -80.82397, -80.13846),
+                      lat = c(38.33989, 37.80225, 36.78333, 36.80656, 37.34526, 38.37086, 38.33989),
+                      treatment = 1)
+mask002 <- data.frame(long = c(-80.13846, -80.15515, -82.00928, -82.27844, -82.26770, -80.41260, -80.13846),
+                      lat = c(38.33989, 38.12488, 36.79769, 36.80656, 37.02207, 38.35271, 38.33989),
+                      treatment = 2)
+mask003 <- data.frame(long = c(-80.13846, -80.17999, -81.60565, -82.27844, -82.25146, -80.82397, -80.13846),
+                      lat = c(38.33989, 37.80225, 36.78333, 36.80656, 37.34526, 38.37086, 38.33989),
+                      treatment = 3)
+mask004 <- data.frame(long = c(-80.13846, -80.18411, -81.46793, -82.2084, -82.17819, -80.89255, -80.13846),
+                      lat = c(38.33989, 37.74847, 36.83211, 36.85827, 37.4508, 38.37374, 38.33989),
+                      treatment = 4)
+mask005 <- data.frame(long = c(-82.19644, -81.51001, -80.22095, -80.26138, -80.93329, -82.22415, -82.19644),
+                      lat = c(38.42185, 38.39818, 37.26431, 36.72611, 36.75651, 37.88371, 38.42185),
+                      treatment = 5)
+mask006 <- data.frame(long = c(-82.19644, -81.92181, -80.24530, -80.26138, -80.53009, -82.26758, -82.19644),
+                      lat = c(38.42185, 38.41282, 36.94141, 36.72611, 36.73870, 38.20664, 38.42185),
+                      treatment = 6)
+masks <- bind_rows(mask001, mask002, mask003, mask004, mask005, mask006)
+
+
+X.VPD <- ggplot() +
+  geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_VPD_t00X), shape = 15, size = 0.33) +
+  geom_point(data = inside, aes(x = Longitude, y = Latitude, color = delta_VPD_t00X), shape = 15, size = 0.33) +
+  scale_color_scico(palette = "vik", name = expression("Pa"), limits = range(c(-93, 93))) +
+  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
+  geom_polygon(data = masks, aes(x = long, y = lat), color = "green", fill = NA, linewidth = 0.5) +
+  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
+  theme_test() +
+  facet_grid(year ~ treatment) +
+  labs(x = NULL, y = NULL, title = expression("c) " * Delta * "VPD")) +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  #standardized_theme +
+  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "right")
+
+X.VT <- ggplot() +
+  geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_VT_t00X), shape = 15, size = 0.33) +
+  geom_point(data = inside, aes(x = Longitude, y = Latitude, color = delta_GT_t00X), shape = 15, size = 0.33) +
+  scale_color_scico(palette = "vik", name = expression("K"), limits = range(c(-0.91, 0.91))) +
+  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
+  geom_polygon(data = masks, aes(x = long, y = lat), color = "green", fill = NA, linewidth = 0.5) +
+  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
+  theme_test() +
+  facet_grid(year ~ treatment) +
+  labs(x = NULL, y = NULL, title = expression("b) " * Delta * "GT (inside) and " * Delta * "VT (outside)")) +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  #standardized_theme +
+  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "right")
+
+X.SM <- ggplot() +
+  geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_SMOIS_t00X), shape = 15, size = 0.33) +
+  geom_point(data = inside, aes(x = Longitude, y = Latitude, color = delta_SMOIS_t00X), shape = 15, size = 0.33) +
+  scale_color_scico(palette = "vik", name = expression("m3/m3"), limits = range(c(-0.038, 0.038)), breaks = (c(-0.015, 0.015))) +
+  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
+  geom_polygon(data = masks, aes(x = long, y = lat), color = "green", fill = NA, linewidth = 0.5) +
+  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
+  theme_test() +
+  facet_grid(year ~ treatment) +
+  labs(x = NULL, y = NULL, title = expression("d) " * Delta * "SM")) +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  #standardized_theme +
+  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "right")
+
+X.APAR <- ggplot() +
+  geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_APAR_t00X), shape = 15, size = 0.33) +
+  geom_point(data = inside, aes(x = Longitude, y = Latitude, color = delta_SWDOWN_t00X), shape = 15, size = 0.33) +
+  scale_color_scico(palette = "vik", name = expression("W/m2"), limits = range(c(-4.60, 4.60))) +
+  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
+  geom_polygon(data = masks, aes(x = long, y = lat), color = "green", fill = NA, linewidth = 0.5) +
+  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
+  theme_test() +
+  facet_grid(year ~ treatment) +
+  labs(x = NULL, y = NULL, title = expression("a) " * Delta * "SW (inside) and " * Delta * "APAR (outside)")) +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  #standardized_theme +
+  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "right")
+
+full_6789 <- ggarrange(X.APAR, X.VT, X.VPD, X.SM, ncol = 1)
+
+#ggsave("~/Desktop/full_corrected.pdf", full_6789, width = 14.5, height = 19, units = "in")
+
+
+X.GPP <- ggplot() +
+  geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_PSN_t00X), shape = 15, size = 0.33) +
+  scale_color_scico(palette = "vik", name = expression("GPP (umol co2/m2/s)"), limits = range(c(-0.98, 0.98))) +
+  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
+  geom_polygon(data = masks, aes(x = long, y = lat), color = "green", linewidth = 0.5) +
+  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
+  theme_test() +
+  facet_grid(year ~ treatment) +
+  labs(x = NULL, y = NULL) +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  #standardized_theme +
+  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "bottom")
+
+#ggsave("~/Desktop/X.GPP_corrected.pdf", X.GPP, width = 12, height = 4.5, units = "in")
+```
+
+
+## Environmental Context Dot Plot (Inside and Outside):
+
+```{r}
+## OUTSIDE
+gpp.mod.carter <- glm(delta_PSN_t00X ~ normalized_ctrl_GPP:as.factor(treatment):as.factor(year), outside_filtered, family="gaussian")
+sm.mod.carter <- glm(delta_SMOIS_t00X ~ normalized_ctrl_SM:as.factor(treatment):as.factor(year), outside_filtered, family="gaussian")
+vpd.mod.carter <- glm(delta_VPD_t00X ~ normalized_ctrl_VPD:as.factor(treatment):as.factor(year), outside_filtered, family="gaussian")
+vt.mod.carter <- glm(delta_VT_t00X ~ normalized_ctrl_VT:as.factor(treatment):as.factor(year), outside_filtered, family="gaussian")
+apar.mod.carter <- glm(delta_APAR_t00X ~ normalized_ctrl_APAR:as.factor(treatment):as.factor(year), outside_filtered, family="gaussian")
+
+make_awful_carter_table <- function(fit, var){
+  cf  <- summary(fit)$coefficients
+  idx <- grep("normalized_ctrl", rownames(cf))
+  trm <- rownames(cf)[idx]
+  data.frame(variable = var,
+             year = sub(".*as\\.factor\\(year\\)([0-9]+)$", "\\1", trm),
+             treatment = sub(".*as\\.factor\\(treatment\\)([0-9]+).*", "\\1", trm),
+             p_val = cf[idx, 4],
+             slope = cf[idx, 1],
+             row.names = NULL)
+}
+
+gpp.mod.carter.mods <- make_awful_carter_table(gpp.mod.carter, "GPP")
+sm.mod.carter.mods <- make_awful_carter_table(sm.mod.carter, "SM")
+vpd.mod.carter.mods <- make_awful_carter_table(vpd.mod.carter, "VPD")
+vt.mod.carter.mods <- make_awful_carter_table(vt.mod.carter, "VT")
+apar.mod.carter.mods <- make_awful_carter_table(apar.mod.carter, "APAR")
+
+all_mods_table_carter <- bind_rows(gpp.mod.carter.mods, sm.mod.carter.mods, vpd.mod.carter.mods, vt.mod.carter.mods, apar.mod.carter.mods)
+
+range(gpp.mod.carter.mods$slope) #-0.23, 0.23
+range(sm.mod.carter.mods$slope) #-0.0040, 0.0040
+range(vpd.mod.carter.mods$slope) #-0.0040, 0.0040
+range(vt.mod.carter.mods$slope) #-5, 5
+range(apar.mod.carter.mods$slope) #-2.92, 2.92
+
+mods_graph_legend_labels_carter <- c("APAR" = "APAR", "GPP" = "GPP", "SM" = "SM", "VPD" = "VPD", "VT" = "VT")
+
+scico_lims_carter <- list("APAR" = c(-2.92, 2.92),
+                   "GPP" = c(-0.23, 0.23),
+                   "SM" = c(-0.0040, 0.0040),
+                   "VPD" = c(-30, 30),
+                   "VT" = c(-5, 5))
+
+scico_breaks_carter <- list("APAR" = c(-2, 0, 2),
+                   "GPP" = c(-0.1, 0, 0.1),
+                   "SM" = c(-0.002, 0.002),
+                   "VPD" = c(-15, 0, 15),
+                   "VT" = c(-2.5, 0, 2.5))
+
+mods_graph_carter <- ggplot()
+for (g in unique(all_mods_table_carter$variable)) {
+  df <- all_mods_table_carter %>% filter(variable == g)
+  mods_graph_carter <- mods_graph_carter + new_scale_color() + geom_point(data = df, aes(x = treatment, y = as.factor(year), color = slope, size = pmin(-log10(p_val), 3))) +
+  scale_color_scico(palette = "vik", name = paste(mods_graph_legend_labels_carter[g]), direction = -1, limits = scico_lims_carter[[g]], breaks = scico_breaks_carter[[g]])
+}
+save_mods_graph_carter <- mods_graph_carter + 
+  facet_wrap( ~ variable, nrow = 1) +
+  theme_bw() +
+  coord_fixed(ratio = 1) +
+  labs(x = "LC Scenario", y = "Year", size = NULL, title = "b) Outside Environmental Variables") +
+  theme(legend.position = "bottom", legend.key.width = unit(0.62, "cm"), strip.text = element_text(size = 14), plot.title = element_text(size = 16))
+
+
+
+## INSIDE
+def2_glm_SW <- glm(delta_SWDOWN_t00X ~ normalized_ctrl_SW:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def2_glm_GT <- glm(delta_GT_t00X ~ normalized_ctrl_GT:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def2_glm_VPD <- glm(delta_VPD_t00X ~ normalized_ctrl_VPD:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def2_glm_SM <- glm(delta_SMOIS_t00X ~ normalized_ctrl_SM:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def2_glm_ET <- glm(delta_ET_t00X ~ normalized_ctrl_ET:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def2_glm_PRCP <- glm(delta_RAINNC_t00X ~ normalized_ctrl_PRCP:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def2_glm_W <- glm(delta_W_t00X ~ normalized_ctrl_W:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+
+make_awful_carter_table_def2 <- function(fit, var){
+  cf  <- summary(fit)$coefficients
+  idx <- grep("normalized_ctrl", rownames(cf))
+  trm <- rownames(cf)[idx]
+  data.frame(variable = var,
+             year = sub(".*as\\.factor\\(year\\)([0-9]+)$", "\\1", trm),
+             treatment = sub(".*as\\.factor\\(treatment\\)([0-9]+).*", "\\1", trm),
+             p_val = cf[idx, 4],
+             slope = cf[idx, 1],
+             row.names = NULL)
+}
+
+def2_GT.mods <- make_awful_carter_table_def2(def2_glm_GT, "GT")
+def2_VPD.mods <- make_awful_carter_table_def2(def2_glm_VPD, "VPD")
+def2_SW.mods <- make_awful_carter_table_def2(def2_glm_SW, "SW")
+def2_SM.mods <- make_awful_carter_table_def2(def2_glm_SM, "SM")
+def2_ET.mods <- make_awful_carter_table_def2(def2_glm_ET, "ET")
+def2_PRCP.mods <- make_awful_carter_table_def2(def2_glm_PRCP, "PRCP")
+def2_W.mods <- make_awful_carter_table_def2(def2_glm_W, "W")
+
+all_mods_table_def2 <- bind_rows(def2_GT.mods, def2_VPD.mods, def2_SW.mods, def2_SM.mods, def2_ET.mods, def2_PRCP.mods, def2_W.mods)
+
+range(def2_GT.mods$slope) #-130, 130
+range(def2_VPD.mods$slope) #-275, 275
+range(def2_SW.mods$slope) #-100, 100
+range(def2_SM.mods$slope) #-0.12, 0.12
+range(def2_ET.mods$slope) #-7.42e-05, 7.42e-05
+range(def2_PRCP.mods$slope) #-1.01, 1.01
+range(def2_W.mods$slope) #-0.012, 0.012
+
+
+mods_graph_legend_labels_def2 <- c("GT" = "GT", "VPD" = "VPD", "SW" = "SW", "SM" = "SM", "ET" = "ET", "PRCP" = "PRCP", "W" = "W")
+
+#var_temp <- all_mods_table$variable == "SM"
+#range(all_mods_table$slope[var_temp])
+
+scico_lims2 <- list("GT" = c(-130, 130),
+                   "VPD" = c(-275, 275),
+                   "SW" = c(-100, 100),
+                   "SM" = c(-0.12, 0.12),
+                   "ET" = c(-7.42e-05, 7.42e-05),
+                   "PRCP" = c(-1.01, 1.01),
+                   "W" = c(-0.012, 0.012))
+
+scico_breaks2 <- list("GT" = c(-65, 65),
+                   "VPD" = c(-150, 150),
+                   "SW" = c(-50, 50),
+                   "SM" = c(-0.06, 0.06),
+                   "ET" = c(-5e-05, 5e-05),
+                   "PRCP" = c(-0.50, 0.50),
+                   "W" = c(-0.006, 0.006))
+
+
+mods_graph_carter2 <- ggplot()
+for (g in unique(all_mods_table_def2$variable)) {
+  df <- all_mods_table_def2 %>% filter(variable == g)
+  mods_graph_carter2 <- mods_graph_carter2 + new_scale_color() + geom_point(data = df, aes(x = treatment, y = as.factor(year), color = slope, size = pmin(-log10(p_val), 3))) +
+  scale_color_scico(palette = "bam", name = paste(mods_graph_legend_labels_def2[g]), direction = -1, limits = scico_lims2[[g]], breaks = scico_breaks2[[g]])
+}
+save_mods_graph_carter_def2 <- mods_graph_carter2 + 
+  facet_wrap( ~ variable, nrow = 1) +
+  theme_bw() +
+  coord_fixed(ratio = 1) +
+  labs(x = "LC Scenario", y = "Year", size = NULL, title = "a) Inside Environmental Variables") +
+  theme(legend.position = "bottom", legend.key.width = unit(0.62, "cm"), strip.text = element_text(size = 14), plot.title = element_text(size = 16))
+#size = "min(-log10(p),10)"
+
+combined_S1_6 <- ggarrange(save_mods_graph_carter_def2, save_mods_graph_carter, ncol = 1)
+
+ggsave("~/Desktop/combined_S1_6.pdf", combined_S1_6, width = 17, height = 6, units = "in")
+
+#ggsave("~/Desktop/save_mods_graph_carter_def2.pdf", save_mods_graph_carter_def2, width = 17, height = 2.6, units = "in")
+
+#ggsave("~/Desktop/outside_filtered/FIG10.pdf", save_mods_graph_carter, width = 14, height = 2.6, units = "in")
+```
+
+
+## Spatial Attenuation Dot Plot:
+
+```{r}
+glm_SM <- glm(delta_SMOIS_t00X ~ distance_to_LU16_km:theta_bucket:as.factor(treatment):as.factor(year), outside_filtered, family = "gaussian")
+glm_VT <- glm(delta_VT_t00X ~ distance_to_LU16_km:theta_bucket:as.factor(treatment):as.factor(year), outside_filtered, family = "gaussian")
+glm_VPD <- glm(delta_VPD_t00X ~ distance_to_LU16_km:theta_bucket:as.factor(treatment):as.factor(year), outside_filtered, family = "gaussian")
+glm_APAR <- glm(delta_APAR_t00X ~ distance_to_LU16_km:theta_bucket:as.factor(treatment):as.factor(year), outside_filtered, family = "gaussian")
+glm_GPP <- glm(delta_PSN_t00X ~ distance_to_LU16_km:theta_bucket:as.factor(treatment):as.factor(year), outside_filtered, family = "gaussian")
+
+make_awful_table <- function(fit, var){
+  cf  <- summary(fit)$coefficients
+  idx <- grep("distance_to_LU16_km:theta_bucket", rownames(cf))
+  trm <- rownames(cf)[idx]
+  data.frame(theta_bucket = sub(".*theta_bucketbucket([^:]+):.*", "\\1", trm),
+             variable = var,
+             year = sub(".*as\\.factor\\(year\\)([0-9]+)$", "\\1", trm),
+             treatment = sub(".*as\\.factor\\(treatment\\)([0-9]+).*", "\\1", trm),
+             p_val = cf[idx, 4],
+             slope = cf[idx, 1],
+             row.names = NULL)
+}
+
+VT.mods <- make_awful_table(glm_VT, "VT")
+VPD.mods <- make_awful_table(glm_VPD, "VPD")
+SM.mods <- make_awful_table(glm_SM, "SM")
+APAR.mods <- make_awful_table(glm_APAR, "APAR")
+GPP.mods <- make_awful_table(glm_GPP, "GPP")
+
+all_mods_table <- bind_rows(VT.mods, VPD.mods, SM.mods, APAR.mods, GPP.mods)
+
+all_mods_table <- all_mods_table %>% mutate(theta_bucket2 = recode(theta_bucket, '1' = "ENE", '2' = "NNE", '3' = "NNW", '4' = "WNW", '5' = "WSW", '6' = "SSW", '7' = "SSE", '8' = "ESE"))
+all_mods_table$theta_bucket2 <- factor(all_mods_table$theta_bucket2, levels = c("ENE", "NNE", "NNW", "WNW", "WSW", "SSW", "SSE", "ESE"))
+
+range(VT.mods$slope) #-0.00262, 0.00262
+range(VPD.mods$slope) #-0.463, 0.463
+range(SM.mods$slope) #-0.0000802, 0.0000802
+range(APAR.mods$slope) #-0.0105, 0.0105
+range(GPP.mods$slope) #-0.0026, 0.0026
+
+
+mods_graph_legend_labels <- c("APAR" = "APAR", "GPP" = "GPP", "SM" = "SM", "VPD" = "VPD", "VT" = "VT")
+
+#var_temp <- all_mods_table$variable == "SM"
+#range(all_mods_table$slope[var_temp])
+
+scico_lims <- list("APAR" = c(-0.0105, 0.0105),
+                   "GPP" = c(-0.00252, 0.00252),
+                   "SM" = c(-0.0000802, 0.0000802),
+                   "VPD" = c(-0.463, 0.463),
+                   "VT" = c(-0.00262, 0.00262))
+
+scico_breaks <- list("APAR" = c(-0.0055, 0.0055),
+                   "GPP" = c(-0.0026, 0.0026),
+                   "SM" = c(-0.000043, 0.000043),
+                   "VPD" = c(-0.22, 0.22),
+                   "VT" = c(-0.0014, 0.0014))
+
+
+mods_graph <- ggplot()
+for (g in unique(all_mods_table$variable)) {
+  df <- all_mods_table %>% filter(variable == g)
+  mods_graph <- mods_graph + new_scale_color() + geom_point(data = df, aes(x = treatment, y = theta_bucket2, color = slope, size = pmin(-log10(p_val), 10))) +
+  scale_color_scico(palette = "vik", name = paste(mods_graph_legend_labels[g]), direction = -1, limits = scico_lims[[g]], breaks = scico_breaks[[g]])
+}
+save_mods_graph <- mods_graph + 
+  facet_grid(year ~ variable) +
+  theme_bw() +
+  coord_fixed(ratio = 0.75) +
+  labs(x = "Deforestation Scenario", y = "Cardinal Direction") +
+  theme(legend.position = "bottom", legend.key.width = unit(0.62, "cm"), strip.text = element_text(size = 16))
+
+
+#, axis.title.x = element_blank(), axis.title.y = element_blank()
+
+ggsave("~/Desktop/FIG11_corrected.pdf", save_mods_graph, width = 14, height = 6.5, units = "in")
+
+```
+
+
+## BIG BEAUTIFUL PLOT (SUPPLEMENTAL)
+
+```{r}
+range(outside_filtered$delta_ALBEDO_t00X)
+range(outside_filtered$delta_RAINNC_t00X)
+range(outside_filtered$delta_ET_t00X)
+range(outside_filtered$delta_W_t00X)
+
+range(inside$delta_ALBEDO_t00X) ## -0.053, 0.053
+range(inside$delta_RAINNC_t00X) ## -2.35, 2.35
+range(inside$delta_ET_t00X) ## -1.74e-05, 1.74e-05
+range(inside$delta_W_t00X) ## -0.172, 0.172
+
+
+mask001 <- data.frame(long = c(-80.13846, -80.17999, -81.60565, -82.27844, -82.25146, -80.82397, -80.13846),
+                      lat = c(38.33989, 37.80225, 36.78333, 36.80656, 37.34526, 38.37086, 38.33989),
+                      treatment = 1)
+mask002 <- data.frame(long = c(-80.13846, -80.15515, -82.00928, -82.27844, -82.26770, -80.41260, -80.13846),
+                      lat = c(38.33989, 38.12488, 36.79769, 36.80656, 37.02207, 38.35271, 38.33989),
+                      treatment = 2)
+mask003 <- data.frame(long = c(-80.13846, -80.17999, -81.60565, -82.27844, -82.25146, -80.82397, -80.13846),
+                      lat = c(38.33989, 37.80225, 36.78333, 36.80656, 37.34526, 38.37086, 38.33989),
+                      treatment = 3)
+mask004 <- data.frame(long = c(-80.13846, -80.18411, -81.46793, -82.2084, -82.17819, -80.89255, -80.13846),
+                      lat = c(38.33989, 37.74847, 36.83211, 36.85827, 37.4508, 38.37374, 38.33989),
+                      treatment = 4)
+mask005 <- data.frame(long = c(-82.19644, -81.51001, -80.22095, -80.26138, -80.93329, -82.22415, -82.19644),
+                      lat = c(38.42185, 38.39818, 37.26431, 36.72611, 36.75651, 37.88371, 38.42185),
+                      treatment = 5)
+mask006 <- data.frame(long = c(-82.19644, -81.92181, -80.24530, -80.26138, -80.53009, -82.26758, -82.19644),
+                      lat = c(38.42185, 38.41282, 36.94141, 36.72611, 36.73870, 38.20664, 38.42185),
+                      treatment = 6)
+masks <- bind_rows(mask001, mask002, mask003, mask004, mask005, mask006)
+
+X.ALBEDO <- ggplot() +
+  geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_ALBEDO_t00X), shape = 15, size = 0.33) +
+  geom_point(data = inside, aes(x = Longitude, y = Latitude, color = delta_ALBEDO_t00X), shape = 15, size = 0.33) +
+  scale_color_scico(palette = "vik", name = expression("--"), limits = range(c(-0.053, 0.053))) +
+  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
+  geom_polygon(data = masks, aes(x = long, y = lat), color = "green", fill = NA, linewidth = 0.5) +
+  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
+  theme_test() +
+  facet_grid(year ~ treatment) +
+  labs(x = NULL, y = NULL, title = expression("a) " * Delta * "ALBEDO")) +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  #standardized_theme +
+  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "right")
+
+X.ET <- ggplot() +
+  geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_ET_t00X), shape = 15, size = 0.33) +
+  geom_point(data = inside, aes(x = Longitude, y = Latitude, color = delta_ET_t00X), shape = 15, size = 0.33) +
+  scale_color_scico(palette = "vik", name = expression("mm s" ^{-1}), limits = range(c(-1.74e-05, 1.74e-05))) +
+  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
+  geom_polygon(data = masks, aes(x = long, y = lat), color = "green", fill = NA, linewidth = 0.5) +
+  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
+  theme_test() +
+  facet_grid(year ~ treatment) +
+  labs(x = NULL, y = NULL, title = expression("b) " * Delta * "ET")) +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  #standardized_theme +
+  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "right")
+
+X.PRCP <- ggplot() +
+  geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_RAINNC_t00X), shape = 15, size = 0.33) +
+  geom_point(data = inside, aes(x = Longitude, y = Latitude, color = delta_RAINNC_t00X), shape = 15, size = 0.33) +
+  scale_color_scico(palette = "vik", name = expression("mm day" ^{-1}), limits = range(c(-2.35, 2.35)), breaks = (c(-1, 1))) +
+  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
+  geom_polygon(data = masks, aes(x = long, y = lat), color = "green", fill = NA, linewidth = 0.5) +
+  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
+  theme_test() +
+  facet_grid(year ~ treatment) +
+  labs(x = NULL, y = NULL, title = expression("c) " * Delta * "PRCP")) +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  #standardized_theme +
+  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "right")
+
+X.W <- ggplot() +
+  geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_W_t00X), shape = 15, size = 0.33) +
+  geom_point(data = inside, aes(x = Longitude, y = Latitude, color = delta_W_t00X), shape = 15, size = 0.33) +
+  scale_color_scico(palette = "vik", name = expression("m s" ^{-1}), limits = range(c(-0.172, 0.172))) +
+  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
+  geom_polygon(data = masks, aes(x = long, y = lat), color = "green", fill = NA, linewidth = 0.5) +
+  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
+  theme_test() +
+  facet_grid(year ~ treatment) +
+  labs(x = NULL, y = NULL, title = expression("d) " * Delta * "W (vertical windspeed)")) +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  #standardized_theme +
+  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "right")
+
+full_6789_supplement <- ggarrange(X.ALBEDO, X.ET, X.PRCP, X.W, ncol = 1)
+
+#ggsave("~/Desktop/full_supplement.pdf", full_6789_supplement, width = 14.5, height = 19, units = "in")
+```
+
+
+
+===========================================================
+
+
+
+######## TABLES ########
+
+
+## Inside Environmental Characteristics Table
+
+```{r}
+inside_data <- inside %>% group_by(year, treatment) %>% summarize(before_VPD = mean(Mean_CTRL_VPD),
+                                                                  delta_VPD = mean(delta_VPD_t00X),#(mean(delta_VPD_t00X)/mean(Mean_CTRL_VPD))*100,
+                                                                  
+                                                                  before_ALBEDO = mean(Mean_CTRL_ALBEDO),
+                                                                  delta_ALBEDO = mean(delta_ALBEDO_t00X),#(mean(delta_ALBEDO_t00X)/mean(Mean_CTRL_ALBEDO))*100,
+                                                                  
+                                                                  before_SWDOWN = mean(Mean_CTRL_SWDOWN),
+                                                                  delta_SWDOWN = mean(delta_SWDOWN_t00X),#(mean(delta_SWDOWN_t00X)/mean(Mean_CTRL_SWDOWN))*100,
+                                                                  
+                                                                  before_GT = mean(Mean_CTRL_GT),
+                                                                  delta_GT = mean(delta_GT_t00X),#(mean(delta_GT_t00X)/mean(Mean_CTRL_GT))*100,
+                                                                  
+                                                                  before_ET = mean(Mean_CTRL_ET),
+                                                                  delta_ET = mean(delta_ET_t00X),#(mean(delta_ET_t00X)/mean(Mean_CTRL_ET))*100,
+                                                                  
+                                                                  before_RAINNC = mean(Mean_CTRL_RAINNC),
+                                                                  delta_RAINNC = mean(delta_RAINNC_t00X),#(mean(delta_RAINNC_t00X)/mean(Mean_CTRL_RAINNC))*100,
+                                                                  
+                                                                  before_SM = mean(Mean_CTRL_SMOIS),
+                                                                  delta_SM = mean(delta_SMOIS_t00X),#(mean(delta_SMOIS_t00X)/mean(Mean_CTRL_SMOIS))*100,
+                                                                  
+                                                                  before_W = mean(Mean_CTRL_W),
+                                                                  delta_W = mean(delta_W_t00X),
+                                                                  other_delta_W = (mean(delta_W_t00X)/mean(Mean_CTRL_W))*100,
+                                                                  
+                                                                  before_WS = sqrt(mean(Mean_CTRL_U)^2 + mean(Mean_CTRL_V)^2),
+                                                                  after_WS = sqrt(mean(Mean_t00X_U)^2 + mean(Mean_t00X_V)^2),
+                                                                  delta_WS = after_WS - before_WS,
+                                                                  #delta_WS = ((after_WS - before_WS)/before_WS)*100,
+                                                                  
+                                                                  before_WD = atan(mean(Mean_CTRL_V)/mean(Mean_CTRL_U))*(180/pi),
+                                                                  after_WD = atan(mean(Mean_t00X_V)/mean(Mean_t00X_U))*(180/pi),
+                                                                  delta_WD = after_WD - before_WD) %>% ungroup()
+kable(inside_data, format = "latex", digits = 3, booktabs = TRUE)
+
+inside_data_avgs <- inside %>% group_by(year) %>% summarize(treatment = "average",
+                                                            before_VPD = mean(Mean_CTRL_VPD),
+                                                            delta_VPD = mean(delta_VPD_t00X),#(mean(delta_VPD_t00X)/mean(Mean_CTRL_VPD))*100,
+                                                            
+                                                            before_ALBEDO = mean(Mean_CTRL_ALBEDO),
+                                                            delta_ALBEDO = mean(delta_ALBEDO_t00X),#(mean(delta_ALBEDO_t00X)/mean(Mean_CTRL_ALBEDO))*100,
+                                                            
+                                                            before_SWDOWN = mean(Mean_CTRL_SWDOWN),
+                                                            delta_SWDOWN = mean(delta_SWDOWN_t00X),#(mean(delta_SWDOWN_t00X)/mean(Mean_CTRL_SWDOWN))*100,
+                                                            
+                                                            before_GT = mean(Mean_CTRL_GT),
+                                                            delta_GT = mean(delta_GT_t00X),#(mean(delta_GT_t00X)/mean(Mean_CTRL_GT))*100,
+                                                            
+                                                            before_ET = mean(Mean_CTRL_ET),
+                                                            delta_ET = mean(delta_ET_t00X),#(mean(delta_ET_t00X)/mean(Mean_CTRL_ET))*100,
+                                                            
+                                                            before_RAINNC = mean(Mean_CTRL_RAINNC),
+                                                            delta_RAINNC = mean(delta_RAINNC_t00X),#(mean(delta_RAINNC_t00X)/mean(Mean_CTRL_RAINNC))*100,
+                                                            
+                                                            before_SM = mean(Mean_CTRL_SMOIS),
+                                                            delta_SM = mean(delta_SMOIS_t00X),#(mean(delta_SMOIS_t00X)/mean(Mean_CTRL_SMOIS))*100,
+                                                            
+                                                            before_W = mean(Mean_CTRL_W),
+                                                            delta_W = mean(delta_W_t00X),#(mean(delta_W_t00X)/mean(Mean_CTRL_W))*100,
+                                                            
+                                                            before_WS = sqrt(mean(Mean_CTRL_U)^2 + mean(Mean_CTRL_V)^2),
+                                                            after_WS = sqrt(mean(Mean_t00X_U)^2 + mean(Mean_t00X_V)^2),
+                                                            delta_WS = after_WS - before_WS,
+                                                            #delta_WS = ((after_WS - before_WS)/before_WS)*100,
+                                                            
+                                                            before_WD = atan(mean(Mean_CTRL_V)/mean(Mean_CTRL_U))*(180/pi),
+                                                            after_WD = atan(mean(Mean_t00X_V)/mean(Mean_t00X_U))*(180/pi),
+                                                            delta_WD = after_WD - before_WD) %>% ungroup()
+kable(inside_data_avgs, format = "latex", digits = 7, booktabs = TRUE)
+```
+
+
+## Outside Environmental Characteristics Table
+
+```{r}
+outside_data <- outside_filtered %>% group_by(year, treatment) %>% summarize(before_VPD = mean(Mean_CTRL_VPD),
+                                                                             delta_VPD = mean(delta_VPD_t00X),#(mean(delta_VPD_t00X)/mean(Mean_CTRL_VPD))*100,
+                                                                             
+                                                                             before_VT = mean(Mean_CTRL_VT),
+                                                                             delta_VT = mean(delta_VT_t00X),#(mean(delta_VT_t00X)/mean(Mean_CTRL_VT))*100,
+                                                                             
+                                                                             before_SM = mean(Mean_CTRL_SMOIS),
+                                                                             delta_SM = mean(delta_SMOIS_t00X),#(mean(delta_SMOIS_t00X)/mean(Mean_CTRL_SMOIS))*100,
+                                                                             
+                                                                             before_APAR = mean(Mean_CTRL_APAR),
+                                                                             delta_APAR = mean(delta_APAR_t00X),#(mean(delta_APAR_t00X)/mean(Mean_CTRL_APAR))*100,
+                                                                             
+                                                                             before_GPP = mean(Mean_CTRL_PSN),
+                                                                             delta_GPP = mean(delta_PSN_t00X))#(mean(delta_PSN_t00X)/mean(Mean_CTRL_PSN))*100) %>% ungroup()
+kable(outside_data, format = "latex", digits = 4, booktabs = TRUE)
+
+outside_data_avgs <- outside_filtered %>% group_by(year) %>% summarize(treatment = "average",
+                                                                       before_VPD = mean(Mean_CTRL_VPD),
+                                                                       delta_VPD = mean(delta_VPD_t00X),#(mean(delta_VPD_t00X)/mean(Mean_CTRL_VPD))*100,
+                                                                       
+                                                                       before_VT = mean(Mean_CTRL_VT),
+                                                                       delta_VT = mean(delta_VT_t00X),#(mean(delta_VT_t00X)/mean(Mean_CTRL_VT))*100,
+                                                                       
+                                                                       before_SM = mean(Mean_CTRL_SMOIS),
+                                                                       delta_SM = mean(delta_SMOIS_t00X),#(mean(delta_SMOIS_t00X)/mean(Mean_CTRL_SMOIS))*100,
+                                                                       
+                                                                       before_APAR = mean(Mean_CTRL_APAR),
+                                                                       delta_APAR = mean(delta_APAR_t00X),#(mean(delta_APAR_t00X)/mean(Mean_CTRL_APAR))*100,
+                                                                       
+                                                                       before_GPP = mean(Mean_CTRL_PSN),
+                                                                       delta_GPP = mean(delta_PSN_t00X))#(mean(delta_PSN_t00X)/mean(Mean_CTRL_PSN))*100) %>% ungroup()
+kable(outside_data_avgs, format = "latex", digits = 3, booktabs = TRUE)
+```
+
+
+## Spatial vs. Topographic Regressions (inside) Table
+
+```{r}
+def_glm_GT_topographic <- glm(delta_GT_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
+def_glm_VPD_topographic <- glm(delta_VPD_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
+def_glm_SM_topographic <- glm(delta_SMOIS_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
+def_glm_ET_topographic <- glm(delta_ET_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
+
+def_glm_GT_spatial <- glm(delta_GT_t00X ~ theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def_glm_VPD_spatial <- glm(delta_VPD_t00X ~ theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def_glm_SM_spatial <- glm(delta_SMOIS_t00X ~ theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def_glm_ET_spatial <- glm(delta_ET_t00X ~ theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+
+def_glm_GT_combined <- glm(delta_GT_t00X ~ theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
+def_glm_VPD_combined <- glm(delta_VPD_t00X ~ theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
+def_glm_SM_combined <- glm(delta_SMOIS_t00X ~ theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
+def_glm_ET_combined <- glm(delta_ET_t00X ~ theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
+
+
+inside_regressions <- data.frame(Variable = c("GT", "VPD", "SM", "ET"),
+                                 Statistic = "AIC",
+                                 Combined = c(AIC(def_glm_GT_combined), AIC(def_glm_VPD_combined), AIC(def_glm_SM_combined), AIC(def_glm_ET_combined)),
+                                 Topographic = c(AIC(def_glm_GT_topographic), AIC(def_glm_VPD_topographic), AIC(def_glm_SM_topographic), AIC(def_glm_ET_topographic)),
+                                 Spatial = c(AIC(def_glm_GT_spatial), AIC(def_glm_VPD_spatial), AIC(def_glm_SM_spatial), AIC(def_glm_ET_spatial)))
+
+inside_regressions_deltas <- data.frame(Variable = c("GT", "VPD", "SM", "ET"),
+                                 Statistic = "deltaAIC",
+                                 Combined = c(AIC(def_glm_GT_combined) - AIC(def_glm_GT_combined), AIC(def_glm_VPD_combined) - AIC(def_glm_VPD_combined), AIC(def_glm_SM_combined) - AIC(def_glm_SM_combined), AIC(def_glm_ET_combined) - AIC(def_glm_ET_combined)),
+                                 Topographic = c(AIC(def_glm_GT_topographic) - AIC(def_glm_GT_combined), AIC(def_glm_VPD_topographic) - AIC(def_glm_VPD_combined), AIC(def_glm_SM_topographic) - AIC(def_glm_SM_combined), AIC(def_glm_ET_topographic) - AIC(def_glm_ET_combined)),
+                                 Spatial = c(AIC(def_glm_GT_spatial) - AIC(def_glm_GT_combined), AIC(def_glm_VPD_spatial) - AIC(def_glm_VPD_combined), AIC(def_glm_SM_spatial) - AIC(def_glm_SM_combined), AIC(def_glm_ET_spatial) - AIC(def_glm_ET_combined)))
+
+inside_model_table <- bind_rows(inside_regressions, inside_regressions_deltas) %>% group_by(Variable)
+
+kable(inside_model_table, format = "latex", digits = 2, booktabs = TRUE)
+```
+
+
+## GPP GLM Table
+
+```{r}
+require(knitr)
+
+intercept.glm <- glm(delta_PSN_t00X ~ 1, data = outside_filtered, family = gaussian)
+null.glm <- glm(delta_PSN_t00X ~ as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
+AVG.CTRL.GPP.glm <- glm(delta_PSN_t00X ~ Mean_CTRL_PSN + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
+X.APAR.glm <- glm(delta_PSN_t00X ~ delta_APAR_t00X + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
+X.SM.glm <- glm(delta_PSN_t00X ~ delta_SMOIS_t00X + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
+X.VT.glm <- glm(delta_PSN_t00X ~ delta_VT_t00X + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
+X.VPD.glm <- glm(delta_PSN_t00X ~ delta_VPD_t00X + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
+APAR.VT.glm <- glm(delta_PSN_t00X ~ delta_APAR_t00X + delta_VT_t00X + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
+APAR.VT.SM.glm <- glm(delta_PSN_t00X ~ delta_APAR_t00X + delta_VT_t00X + delta_SMOIS_t00X + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
+APAR.VT.SM.VPD.glm <- glm(delta_PSN_t00X ~ delta_APAR_t00X + delta_VT_t00X + delta_SMOIS_t00X + delta_VPD_t00X + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
+APAR.VT.SM.VPD.AVG_CTRL.glm <- glm(delta_PSN_t00X ~ delta_APAR_t00X + delta_VT_t00X + delta_SMOIS_t00X + delta_VPD_t00X + Mean_CTRL_PSN + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
+
+GLM_Table <- data.frame(VARIABLE = c("Intercept Only", "Base Model", "AVG.CTRL.GPP", "X.APAR", "X.SM", "X.VT", "X.VPD", "X.VT + X.APAR", "X.VT + X.APAR + X.SM", "X.VT + X.APAR + X.SM + X.VPD"),
+                        AIC = c(AIC(intercept.glm), AIC(null.glm), AIC(AVG.CTRL.GPP.glm), AIC(X.APAR.glm), AIC(X.SM.glm), AIC(X.VT.glm), AIC(X.VPD.glm), AIC(APAR.VT.glm), AIC(APAR.VT.SM.glm), AIC(APAR.VT.SM.VPD.glm)),
+                        delta_AIC = c(NA, AIC(null.glm)-AIC(intercept.glm), AIC(AVG.CTRL.GPP.glm)-AIC(intercept.glm), AIC(X.APAR.glm)-AIC(intercept.glm), AIC(X.SM.glm)-AIC(intercept.glm), AIC(X.VT.glm)-AIC(intercept.glm), AIC(X.VPD.glm)-AIC(intercept.glm), AIC(APAR.VT.glm)-AIC(intercept.glm), AIC(APAR.VT.SM.glm)-AIC(intercept.glm), AIC(APAR.VT.SM.VPD.glm)-AIC(intercept.glm)))
+
+kable(GLM_Table, format = "latex", digits = 4, booktabs = TRUE)
+
+
+Ford_formatted_GLM_Table <- data.frame(VARIABLE = c("X.VT + X.APAR + X.SM + X.VPD + AVG.CTRL.GPP", "X.VT + X.APAR + X.SM + X.VPD", "X.VT + X.APAR + X.SM", "X.SM", "X.VPD", "X.VT + X.APAR", "X.APAR", "X.VT", "AVG.CTRL.GPP", "Base Model", "Intercept Only"),
+                                       AIC = c(AIC(APAR.VT.SM.VPD.AVG_CTRL.glm), AIC(APAR.VT.SM.VPD.glm), AIC(APAR.VT.SM.glm), AIC(X.SM.glm), AIC(X.VPD.glm), AIC(APAR.VT.glm), AIC(X.APAR.glm), AIC(X.VT.glm), AIC(AVG.CTRL.GPP.glm), AIC(null.glm), AIC(intercept.glm)),
+                                       delta_AIC = c(NA, AIC(APAR.VT.SM.VPD.glm)-AIC(APAR.VT.SM.VPD.AVG_CTRL.glm), AIC(APAR.VT.SM.glm)-AIC(APAR.VT.SM.VPD.AVG_CTRL.glm), AIC(X.SM.glm)-AIC(APAR.VT.SM.VPD.AVG_CTRL.glm), AIC(X.VPD.glm)-AIC(APAR.VT.SM.VPD.AVG_CTRL.glm), AIC(APAR.VT.glm)-AIC(APAR.VT.SM.VPD.AVG_CTRL.glm), AIC(X.APAR.glm)-AIC(APAR.VT.SM.VPD.AVG_CTRL.glm), AIC(X.VT.glm)-AIC(APAR.VT.SM.VPD.AVG_CTRL.glm), AIC(AVG.CTRL.GPP.glm)-AIC(APAR.VT.SM.VPD.AVG_CTRL.glm), AIC(null.glm)-AIC(APAR.VT.SM.VPD.AVG_CTRL.glm), AIC(intercept.glm)-AIC(APAR.VT.SM.VPD.AVG_CTRL.glm)))
+
+kable(Ford_formatted_GLM_Table, format = "latex", digits = 2, booktabs = TRUE)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##################### OLD SHIT #####################
+
+
+
+
+
+```{r}
+def_glm_SW_intercept <- glm(delta_SWDOWN_t00X ~ 1, inside, family = "gaussian")
+def_glm_GT_intercept <- glm(delta_GT_t00X ~ 1, inside, family = "gaussian")
+def_glm_VPD_intercept <- glm(delta_VPD_t00X ~ 1, inside, family = "gaussian")
+def_glm_SM_intercept <- glm(delta_SMOIS_t00X ~ 1, inside, family = "gaussian")
+def_glm_ET_intercept <- glm(delta_ET_t00X ~ 1, inside, family = "gaussian")
+def_glm_PRCP_intercept <- glm(delta_RAINNC_t00X ~ 1, inside, family = "gaussian")
+def_glm_W_intercept <- glm(delta_W_t00X ~ 1, inside, family = "gaussian")
+
+def_glm_SW <- glm(delta_SWDOWN_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def_glm_GT <- glm(delta_GT_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def_glm_VPD <- glm(delta_VPD_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def_glm_SM <- glm(delta_SMOIS_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def_glm_ET <- glm(delta_ET_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def_glm_PRCP <- glm(delta_RAINNC_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def_glm_W <- glm(delta_W_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+
+def_glm_SW_soil_type <- glm(delta_SWDOWN_t00X ~ SOIL.TYPE, inside, family = "gaussian")
+def_glm_GT_soil_type <- glm(delta_GT_t00X ~ SOIL.TYPE, inside, family = "gaussian")
+def_glm_VPD_soil_type <- glm(delta_VPD_t00X ~ SOIL.TYPE, inside, family = "gaussian")
+def_glm_SM_soil_type <- glm(delta_SMOIS_t00X ~ SOIL.TYPE, inside, family = "gaussian")
+def_glm_ET_soil_type <- glm(delta_ET_t00X ~ SOIL.TYPE, inside, family = "gaussian")
+def_glm_PRCP_soil_type <- glm(delta_RAINNC_t00X ~ SOIL.TYPE, inside, family = "gaussian")
+def_glm_W_soil_type <- glm(delta_W_t00X ~ SOIL.TYPE, inside, family = "gaussian")
+
+def_glm_SW_elevation <- glm(delta_SWDOWN_t00X ~ ELEVATION, inside, family = "gaussian")
+def_glm_GT_elevation <- glm(delta_GT_t00X ~ ELEVATION, inside, family = "gaussian")
+def_glm_VPD_elevation <- glm(delta_VPD_t00X ~ ELEVATION, inside, family = "gaussian")
+def_glm_SM_elevation <- glm(delta_SMOIS_t00X ~ ELEVATION, inside, family = "gaussian")
+def_glm_ET_elevation <- glm(delta_ET_t00X ~ ELEVATION, inside, family = "gaussian")
+def_glm_PRCP_elevation <- glm(delta_RAINNC_t00X ~ ELEVATION, inside, family = "gaussian")
+def_glm_W_elevation <- glm(delta_W_t00X ~ ELEVATION, inside, family = "gaussian")
+
+def_glm_SW_norm <- glm(delta_SWDOWN_t00X ~ normalized_ctrl_SW, inside, family = "gaussian")
+def_glm_GT_norm <- glm(delta_GT_t00X ~ normalized_ctrl_GT, inside, family = "gaussian")
+def_glm_VPD_norm <- glm(delta_VPD_t00X ~ normalized_ctrl_VPD, inside, family = "gaussian")
+def_glm_SM_norm <- glm(delta_SMOIS_t00X ~ normalized_ctrl_SM, inside, family = "gaussian")
+def_glm_ET_norm <- glm(delta_ET_t00X ~ normalized_ctrl_ET, inside, family = "gaussian")
+def_glm_PRCP_norm <- glm(delta_RAINNC_t00X ~ normalized_ctrl_PRCP, inside, family = "gaussian")
+def_glm_W_norm <- glm(delta_W_t00X ~ normalized_ctrl_W, inside, family = "gaussian")
+
+def_glm_SW_soil_base <- glm(delta_SWDOWN_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE, inside, family = "gaussian")
+def_glm_GT_soil_base <- glm(delta_GT_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE, inside, family = "gaussian")
+def_glm_VPD_soil_base <- glm(delta_VPD_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE, inside, family = "gaussian")
+def_glm_SM_soil_base <- glm(delta_SMOIS_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE, inside, family = "gaussian")
+def_glm_ET_soil_base <- glm(delta_ET_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE, inside, family = "gaussian")
+def_glm_PRCP_soil_base <- glm(delta_RAINNC_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE, inside, family = "gaussian")
+def_glm_W_soil_base <- glm(delta_W_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE, inside, family = "gaussian")
+
+def_glm_SW_elevation_base <- glm(delta_SWDOWN_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + ELEVATION, inside, family = "gaussian")
+def_glm_GT_elevation_base <- glm(delta_GT_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + ELEVATION, inside, family = "gaussian")
+def_glm_VPD_elevation_base <- glm(delta_VPD_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + ELEVATION, inside, family = "gaussian")
+def_glm_SM_elevation_base <- glm(delta_SMOIS_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + ELEVATION, inside, family = "gaussian")
+def_glm_ET_elevation_base <- glm(delta_ET_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + ELEVATION, inside, family = "gaussian")
+def_glm_PRCP_elevation_base <- glm(delta_RAINNC_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + ELEVATION, inside, family = "gaussian")
+def_glm_W_elevation_base <- glm(delta_W_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + ELEVATION, inside, family = "gaussian")
+
+def_glm_SW_elevation_soil_base <- glm(delta_SWDOWN_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
+def_glm_GT_elevation_soil_base <- glm(delta_GT_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
+def_glm_VPD_elevation_soil_base <- glm(delta_VPD_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
+def_glm_SM_elevation_soil_base <- glm(delta_SMOIS_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
+def_glm_ET_elevation_soil_base <- glm(delta_ET_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
+def_glm_PRCP_elevation_soil_base <- glm(delta_RAINNC_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
+def_glm_W_elevation_soil_base <- glm(delta_W_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
+
+def_glm_SW_elevation_soil <- glm(delta_SWDOWN_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
+def_glm_GT_elevation_soil <- glm(delta_GT_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
+def_glm_VPD_elevation_soil <- glm(delta_VPD_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
+def_glm_SM_elevation_soil <- glm(delta_SMOIS_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
+def_glm_ET_elevation_soil <- glm(delta_ET_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
+def_glm_PRCP_elevation_soil <- glm(delta_RAINNC_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
+def_glm_W_elevation_soil <- glm(delta_W_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
+
+def_glm_SW_elevation_soil_base_norm <- glm(delta_SWDOWN_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION + normalized_ctrl_SW, inside, family = "gaussian")
+def_glm_GT_elevation_soil_base_norm <- glm(delta_GT_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION + normalized_ctrl_GT, inside, family = "gaussian")
+def_glm_VPD_elevation_soil_base_norm <- glm(delta_VPD_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION + normalized_ctrl_VPD, inside, family = "gaussian")
+def_glm_SM_elevation_soil_base_norm <- glm(delta_SMOIS_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION + normalized_ctrl_SM, inside, family = "gaussian")
+def_glm_ET_elevation_soil_base_norm <- glm(delta_ET_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION + normalized_ctrl_ET, inside, family = "gaussian")
+def_glm_PRCP_elevation_soil_base_norm <- glm(delta_RAINNC_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION + normalized_ctrl_PRCP, inside, family = "gaussian")
+def_glm_W_elevation_soil_base_norm <- glm(delta_W_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION + normalized_ctrl_W, inside, family = "gaussian")
+
+inside_regressions <- data.frame(Variable = c("SW", "GT", "VPD", "SM", "ET", "PRCP", "W"),
+                                 Statistic = "AIC",
+                                 Base_Soil_Elev_NORMALIZED_CTRL = c(AIC(def_glm_SW_elevation_soil_base_norm), AIC(def_glm_GT_elevation_soil_base_norm), AIC(def_glm_VPD_elevation_soil_base_norm), AIC(def_glm_SM_elevation_soil_base_norm), AIC(def_glm_ET_elevation_soil_base_norm), AIC(def_glm_PRCP_elevation_soil_base_norm), AIC(def_glm_W_elevation_soil_base_norm)),
+                                 Base_Soil_Elev = c(AIC(def_glm_SW_elevation_soil_base), AIC(def_glm_GT_elevation_soil_base), AIC(def_glm_VPD_elevation_soil_base), AIC(def_glm_SM_elevation_soil_base), AIC(def_glm_ET_elevation_soil_base), AIC(def_glm_PRCP_elevation_soil_base), AIC(def_glm_W_elevation_soil_base)),
+                                 #Base_ELEV = c(AIC(def_glm_SW_elevation_base), AIC(def_glm_GT_elevation_base), AIC(def_glm_VPD_elevation_base), AIC(def_glm_SM_elevation_base), AIC(def_glm_ET_elevation_base), AIC(def_glm_PRCP_elevation_base), AIC(def_glm_W_elevation_base)),
+                                 Base_SOIL = c(AIC(def_glm_SW_soil_base), AIC(def_glm_GT_soil_base), AIC(def_glm_VPD_soil_base), AIC(def_glm_SM_soil_base), AIC(def_glm_ET_soil_base), AIC(def_glm_PRCP_soil_base), AIC(def_glm_W_soil_base)),
+                                 #SOIL_ELEV = c(AIC(def_glm_SW_elevation_soil), AIC(def_glm_GT_elevation_soil), AIC(def_glm_VPD_elevation_soil), AIC(def_glm_SM_elevation_soil), AIC(def_glm_ET_elevation_soil), AIC(def_glm_PRCP_elevation_soil), AIC(def_glm_W_elevation_soil)),
+                                 Base_Model = c(AIC(def_glm_SW), AIC(def_glm_GT), AIC(def_glm_VPD), AIC(def_glm_SM), AIC(def_glm_ET), AIC(def_glm_PRCP), AIC(def_glm_W)),
+                                 SOIL_TYPE = c(AIC(def_glm_SW_soil_type), AIC(def_glm_GT_soil_type), AIC(def_glm_VPD_soil_type), AIC(def_glm_SM_soil_type), AIC(def_glm_ET_soil_type), AIC(def_glm_PRCP_soil_type), AIC(def_glm_W_soil_type)),
+                                 ELEVATION = c(AIC(def_glm_SW_elevation), AIC(def_glm_GT_elevation), AIC(def_glm_VPD_elevation), AIC(def_glm_SM_elevation), AIC(def_glm_ET_elevation), AIC(def_glm_PRCP_elevation), AIC(def_glm_W_elevation)),
+                                 NORMALIZED_CTRL = c(AIC(def_glm_SW_norm), AIC(def_glm_GT_norm), AIC(def_glm_VPD_norm), AIC(def_glm_SM_norm), AIC(def_glm_ET_norm), AIC(def_glm_PRCP_norm), AIC(def_glm_W_norm)),
+                                 Intercept = c(AIC(def_glm_SW_intercept), AIC(def_glm_GT_intercept), AIC(def_glm_VPD_intercept), AIC(def_glm_SM_intercept), AIC(def_glm_ET_intercept), AIC(def_glm_PRCP_intercept), AIC(def_glm_W_intercept)))
+
+
+
+#Base_Soil_Elev = c(AIC(def_glm_SW_elevation_soil_base), AIC(def_glm_GT_elevation_soil_base), AIC(def_glm_VPD_elevation_soil_base), AIC(def_glm_SM_elevation_soil_base), AIC(def_glm_ET_elevation_soil_base), AIC(def_glm_PRCP_elevation_soil_base), AIC(def_glm_W_elevation_soil_base)),
+
+inside_regressions_deltaAIC <- data.frame(Variable = c("SW", "GT", "VPD", "SM", "ET", "PRCP", "W"),
+                                 Statistic = "DeltaAIC",
+                                 Base_Soil_Elev = c(NA),
+                                 Base_ELEV = c(AIC(def_glm_SW_elevation_base)-AIC(def_glm_SW_elevation_soil_base), AIC(def_glm_GT_elevation_base)-AIC(def_glm_GT_elevation_soil_base), AIC(def_glm_VPD_elevation_base)-AIC(def_glm_VPD_elevation_soil_base), AIC(def_glm_SM_elevation_base)-AIC(def_glm_SM_elevation_soil_base), AIC(def_glm_ET_elevation_base)-AIC(def_glm_ET_elevation_soil_base), AIC(def_glm_PRCP_elevation_base)-AIC(def_glm_PRCP_elevation_soil_base), AIC(def_glm_W_elevation_base)-AIC(def_glm_W_elevation_soil_base)),
+                                 Base_SOIL = c(AIC(def_glm_SW_soil_base)-AIC(def_glm_SW_elevation_soil_base), AIC(def_glm_GT_soil_base)-AIC(def_glm_GT_elevation_soil_base), AIC(def_glm_VPD_soil_base)-AIC(def_glm_VPD_elevation_soil_base), AIC(def_glm_SM_soil_base)-AIC(def_glm_SM_elevation_soil_base), AIC(def_glm_ET_soil_base)-AIC(def_glm_ET_elevation_soil_base), AIC(def_glm_PRCP_soil_base)-AIC(def_glm_PRCP_elevation_soil_base), AIC(def_glm_W_soil_base)-AIC(def_glm_W_elevation_soil_base)),
+                                 SOIL_ELEV = c(AIC(def_glm_SW_elevation_soil)-AIC(def_glm_SW_elevation_soil_base), AIC(def_glm_GT_elevation_soil)-AIC(def_glm_GT_elevation_soil_base), AIC(def_glm_VPD_elevation_soil)-AIC(def_glm_VPD_elevation_soil_base), AIC(def_glm_SM_elevation_soil)-AIC(def_glm_SM_elevation_soil_base), AIC(def_glm_ET_elevation_soil)-AIC(def_glm_ET_elevation_soil_base), AIC(def_glm_PRCP_elevation_soil)-AIC(def_glm_PRCP_elevation_soil_base), AIC(def_glm_W_elevation_soil)-AIC(def_glm_W_elevation_soil_base)),
+                                 Base_Model = c(AIC(def_glm_SW)-AIC(def_glm_SW_elevation_soil_base), AIC(def_glm_GT)-AIC(def_glm_GT_elevation_soil_base), AIC(def_glm_VPD)-AIC(def_glm_VPD_elevation_soil_base), AIC(def_glm_SM)-AIC(def_glm_SM_elevation_soil_base), AIC(def_glm_ET)-AIC(def_glm_ET_elevation_soil_base), AIC(def_glm_PRCP)-AIC(def_glm_PRCP_elevation_soil_base), AIC(def_glm_W)-AIC(def_glm_W_elevation_soil_base)),
+                                 SOIL_TYPE = c(AIC(def_glm_SW_soil_type)-AIC(def_glm_SW_elevation_soil_base), AIC(def_glm_GT_soil_type)-AIC(def_glm_GT_elevation_soil_base), AIC(def_glm_VPD_soil_type)-AIC(def_glm_VPD_elevation_soil_base), AIC(def_glm_SM_soil_type)-AIC(def_glm_SM_elevation_soil_base), AIC(def_glm_ET_soil_type)-AIC(def_glm_ET_elevation_soil_base), AIC(def_glm_PRCP_soil_type)-AIC(def_glm_PRCP_elevation_soil_base), AIC(def_glm_W_soil_type)-AIC(def_glm_W_elevation_soil_base)),
+                                 ELEVATION = c(AIC(def_glm_SW_elevation)-AIC(def_glm_SW_elevation_soil_base), AIC(def_glm_GT_elevation)-AIC(def_glm_GT_elevation_soil_base), AIC(def_glm_VPD_elevation)-AIC(def_glm_VPD_elevation_soil_base), AIC(def_glm_SM_elevation)-AIC(def_glm_SM_elevation_soil_base), AIC(def_glm_ET_elevation)-AIC(def_glm_ET_elevation_soil_base), AIC(def_glm_PRCP_elevation)-AIC(def_glm_PRCP_elevation_soil_base), AIC(def_glm_W_elevation)-AIC(def_glm_W_elevation_soil_base)),
+                                 Intercept = c(AIC(def_glm_SW_intercept)-AIC(def_glm_SW_elevation_soil_base), AIC(def_glm_GT_intercept)-AIC(def_glm_GT_elevation_soil_base), AIC(def_glm_VPD_intercept)-AIC(def_glm_VPD_elevation_soil_base), AIC(def_glm_SM_intercept)-AIC(def_glm_SM_elevation_soil_base), AIC(def_glm_ET_intercept)-AIC(def_glm_ET_elevation_soil_base), AIC(def_glm_PRCP_intercept)-AIC(def_glm_PRCP_elevation_soil_base), AIC(def_glm_W_intercept)-AIC(def_glm_W_elevation_soil_base)))
+
+inside_model_table <- bind_rows(inside_regressions, inside_regressions_deltaAIC) %>% group_by(Variable)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## CONVECTION PLOTS
+
+```{r}
+range(inside$delta_GT_t00X) ## -0.18, 0.18
+
+X.W.inside <- ggplot() +
+  geom_point(data = inside, aes(x = Longitude, y = Latitude, color = delta_GT_t00X), shape = 15, size = 0.33) +
+  scale_color_scico(palette = "vik", name = expression("GT (K)"), limits = range(c(-3.67, 3.67))) +
+  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
+  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
+  theme_test() +
+  facet_grid(year ~ treatment) +
+  labs(x = NULL, y = NULL) +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  #standardized_theme +
+  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "bottom")
+
+ctrl_17_July2025 <- read.csv("./data/csvs/July2025/July2025_17.001_all_points.csv") %>% filter(Mean_CTRL_PSN > 2)
+
+range(ctrl_17_July2025$Mean_t00X_W)
+
+ggplot() +
+  geom_point(data = ctrl_17, aes(x = Longitude, y = Latitude, color = delta_SMOIS_t00X), shape = 15, size = 0.33) +
+  scale_color_scico(palette = "vik", name = expression("GT (K)"), limits = range(c(-0.03, 0.03))) +
+  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
+  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
+  theme_test() +
+  #facet_grid(year ~ treatment) +
+  labs(x = NULL, y = NULL) +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  #standardized_theme +
+  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "bottom")
+
+ggsave("~/Desktop/X.GT.inside.pdf", X.W.inside, width = 12, height = 4.5, units = "in")
+```
+
+
+
+
+## FIG 12) RGB MAPS
+
+```{r}
+red_vals <- seq(0, 0.2, 0.04)
+green_vals <- seq(0, 0.3, 0.06)
+blue_vals <- seq(0, 0.45, 0.09)
+colors <- expand.grid(red = red_vals,
+                      green = green_vals,
+                      blue = blue_vals) %>% mutate(RGB = rgb(red, green, blue))
+
+ggplot(colors, aes(x = green, y = red, fill = RGB)) +
+  geom_tile(color = "lightgray", linewidth = 0.3) +
+  #scale_fill_identity() +
+  scale_x_continuous(breaks = green_vals, labels = green_vals, expand = c(0,0)) +
+  scale_y_continuous(breaks = red_vals, labels = red_vals, expand = c(0,0)) +
+  labs(x = "green (APAR)", y = "red (VT)") +
+  facet_wrap(~blue, nrow = 1, labeller = labeller(blue = function(x) paste("blue (SM) =", x))) +
+  coord_fixed() +
+  theme(legend.position = 'none')
+
+
+df <- read.csv("~/Desktop/NEW_FINAL_SEPT_final_filtered_df.csv")
+df_cleaned = na.omit(df)
+
+gamma <- 1
+df_cleaned <- df_cleaned %>% mutate(X.APAR.normalized = (abs(X.APAR) / max(abs(df_cleaned$X.APAR)))^gamma,
+                                    #X.VPD.normalized = abs(X.VPD) / max(abs(df_cleaned$X.VPD)),
+                                    X.VT.normalized = (abs(X.VT) / max(abs(df_cleaned$X.VT)))^gamma,
+                                    X.SM.normalized = (abs(X.SM) / max(abs(df_cleaned$X.SM)))^gamma,
+                                    delta.RGB = rgb(X.VT.normalized, X.APAR.normalized, X.SM.normalized),
+                                    
+                                    CTRL.APAR.normalized = abs(AVG.CTRL.APAR) / max(abs(df_cleaned$AVG.CTRL.APAR)),
+                                    #CTRL.VPD.normalized = abs(AVG.CTRL.VPD) / max(abs(df_cleaned$AVG.CTRL.VPD)),
+                                    CTRL.VT.normalized = abs(AVG.CTRL.VT) / max(abs(df_cleaned$AVG.CTRL.VT)),
+                                    CTRL.SM.normalized = abs(AVG.CTRL.SM) / max(abs(df_cleaned$AVG.CTRL.SM)),
+                                    ctrl.RGB = rgb(CTRL.VT.normalized, CTRL.APAR.normalized, CTRL.SM.normalized))
+
+#sm_limited <- df_cleaned %>% filter(X.APAR.normalized < 0.5, X.VT.normalized < 0.5, X.SM.normalized < 0.5)
+
+#sm_limited$delta.RGB = rgb(sm_limited$X.VT.normalized + 0.3, sm_limited$X.APAR.normalized + 0.3, sm_limited$X.SM.normalized + 0.3)
+
+ggplot() +
+  geom_point(data = df_cleaned, aes(x = Longitude, y = Latitude, color = delta.RGB), shape = 15, size = 0.33) +
+  scale_color_identity() +
+  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0)  +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
+  labs(x = NULL, y = NULL) +
+  facet_grid(Year ~ Treatment) +
+  theme_test() +
+  theme(legend.position = 'none', panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+hist(df_cleaned$X.VT.normalized, breaks = 50)
+hist(df_cleaned$X.APAR.normalized, breaks = 50)
+hist(df_cleaned$X.SM.normalized, breaks = 50)
+
+
+hist(df_cleaned$CTRL.VT.normalized, breaks = 50)
+hist(df_cleaned$CTRL.APAR.normalized, breaks = 50)
+hist(df_cleaned$CTRL.SM.normalized, breaks = 50)
+
+ggplot() +
+  geom_point(data = sm_limited, aes(x = Longitude, y = Latitude, color = X.APAR.normalized), shape = 15, size = 0.33) +
+  facet_grid(Year ~ Treatment)
+
+range(sm_limited$X.APAR.normalized)
+range(sm_limited$X.VT.normalized)
+range(sm_limited$X.SM.normalized)
+
+
+
+key_colors <- sm_limited %>%
+  select(delta.RGB, X.VT.normalized, X.APAR.normalized, X.SM.normalized) %>%
+  distinct() %>%
+  head(100)  # optional: limit to 100 points for display
+
+ggplot(key_colors, aes(x = X.APAR.normalized, y = X.VT.normalized, fill = delta.RGB)) +
+  geom_tile(color = "lightgray", linewidth = 0.3) +
+  scale_fill_identity() +
+  labs(x = "green (APAR)", y = "red (VT)") +
+  facet_wrap(~X.SM.normalized, nrow = 1)
+```
+
+
+
+
+
+
+
+
+## THETA BUCKET MAPS
+
+```{r}
+require(geosphere)
+theta_bucket_maps <- ctrl_17 %>% select(Latitude, Longitude, X)
+
+calculate_polar <- function(lat, lon) {
+  r <- distHaversine(c(-81.21869, 37.57799), c(lon, lat))
+  theta <- atan2(lat - 37.57799, lon - -81.21869)
+  return(c(r, theta))}
+
+theta_bucket_maps <- theta_bucket_maps %>% rowwise() %>%
+  mutate(polar = list(calculate_polar(Latitude, Longitude)),
+         r = polar[1],
+         theta = polar[2]) %>%
+  select(-polar)
+theta_bucket_maps <- theta_bucket_maps %>% mutate(theta_bucket = case_when(theta >= 0 & theta < pi/4 ~ "Bucket 1",
+                                                                           theta >= pi/4 & theta < pi/2 ~ "Bucket 2",
+                                                                           theta >= pi/2 & theta < 3*pi/4 ~ "Bucket 3",
+                                                                           theta >= 3*pi/4 & theta <= pi ~ "Bucket 4",
+                                                                           theta < -3*pi/4 & theta >= -pi ~ "Bucket 5",
+                                                                           theta < -pi/2 & theta >= -3*pi/4 ~ "Bucket 6",
+                                                                           theta < -pi/4 & theta >= -pi/2 ~ "Bucket 7",
+                                                                           theta < 0 & theta >= -pi/4 ~ "Bucket 8"))
+
+
+theta_buckets_graph <- ggplot() +
+  geom_point(data = theta_bucket_maps, aes(x = Longitude, y = Latitude, color = theta_bucket), shape = 15, size = 1.2) +
+  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
+  theme_test() +
+  labs(x = NULL, y = NULL, color = "Theta Bucket") +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  theme(axis.text = element_text(size = 16, face = "bold"), plot.title = element_text(size = 16), legend.position = "bottom", legend.text = element_text(size = 12), legend.title = element_text(size = 12)) +
+  guides(color = guide_legend(nrow = 2, override.aes = list(size = 5)))
+
+ggsave("~/Desktop/theta_buckets.pdf", theta_buckets_graph, width = 6, height = 6, units = "in")
+```
+
+
+
+
+
+## New Figure 5) Windspeeds
+
+```{r}
+inside_luc1.17 <- read.csv("CSVs/July2025_17.001_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 1)
+inside_luc2.17 <- read.csv("CSVs/July2025_17.002_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 2)
+inside_luc3.17 <- read.csv("CSVs/July2025_17.003_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 3)
+inside_luc4.17 <- read.csv("CSVs/July2025_17.004_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 4)
+inside_luc5.17 <- read.csv("CSVs/July2025_17.005_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 5)
+inside_luc6.17 <- read.csv("CSVs/July2025_17.006_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 6)
+inside_luc1.18 <- read.csv("CSVs/July2025_18.001_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 1)
+inside_luc2.18 <- read.csv("CSVs/July2025_18.002_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 2)
+inside_luc3.18 <- read.csv("CSVs/July2025_18.003_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 3)
+inside_luc4.18 <- read.csv("CSVs/July2025_18.004_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 4)
+inside_luc5.18 <- read.csv("CSVs/July2025_18.005_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 5)
+inside_luc6.18 <- read.csv("CSVs/July2025_18.006_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 6)
+
+inside <- bind_rows(inside_luc1.17, inside_luc2.17, inside_luc3.17, inside_luc4.17, inside_luc5.17, inside_luc6.17,
+                    inside_luc1.18, inside_luc2.18, inside_luc3.18, inside_luc4.18, inside_luc5.18, inside_luc6.18)
+
+wind_data <- inside %>% group_by(year, treatment) %>% summarize(before_u = mean(Mean_CTRL_U),
+                                                                before_v = mean(Mean_CTRL_V),
+                                                                after_u = mean(Mean_t00X_U),
+                                                                after_v = mean(Mean_t00X_V),
+                                                                before_Windspeed = sqrt(before_u^2 + before_v^2),
+                                                                after_Windspeed = sqrt(after_u^2 + after_v^2),
+                                                                before_Wind_direction = atan(before_v/before_u),
+                                                                after_Wind_direction = atan(after_v/after_u)) %>% ungroup()
+
+avg_wind_data <- wind_data %>% group_by(year) %>% summarize(before_Windspeed = mean(before_Windspeed),
+                                                            after_Windspeed = mean(after_Windspeed),
+                                                            before_Wind_direction = mean(before_Wind_direction),
+                                                            after_Wind_direction = mean(after_Wind_direction))
+windspeed_plot <- ggplot(data = wind_data) + 
+  geom_point(aes(x = before_u, y = before_v, color = factor(treatment))) +
+  geom_point(aes(x = after_u, y = after_v, color = factor(treatment))) +
+  geom_segment(arrow = arrow(length = unit(0.2, "cm")), aes(x = before_u, y = before_v, xend = after_u, yend = after_v, color = factor(treatment))) +
+  xlim(0.64, 1.4) +
+  ylim(0.54, 1.3) +
+  facet_wrap(~ year, nrow = 2, strip.position = "right") +
+  theme_bw() +
+  labs(x = "U (m/s)", y = "V (m/s)") +
+  scale_color_viridis_d(name = "Treatment") +
+  coord_fixed() +
+  theme(legend.position = "bottom")
+  #labs(title = expression(Delta * "Windspeed (m/s)"))
+
+ggsave("~/Desktop/windspeed_plot.pdf", windspeed_plot, width = 3, height = 4.5, units = "in")
+```
+
+
+
+
+REMOVED FROM ABOVE:
+windspeed_plot <- ggplot(data = wind_data) + 
+  geom_point(aes(x = before_u, y = before_v, fill = factor(year)), size = 3, shape = 21) +
+  geom_point(aes(x = after_u, y = after_v, fill = factor(year)), size = 3, shape = 21) +
+  geom_segment(arrow = arrow(length = unit(0.2, "cm")), aes(x = before_u, y = before_v, xend = after_u, yend = after_v, color = factor(treatment))) +
+  xlim(0.64, 1.4) +
+  ylim(0.54, 1.3) +
+  #facet_wrap(~ year, nrow = 2, strip.position = "right") +
+  theme_bw() +
+  labs(x = "U (m/s)", y = "V (m/s)") +
+  scale_color_scico_d(name = "Treatment", palette = "hawaii") +
+  scale_fill_manual(name = "Year", values = c("2017" = "red", "2018" = "lightblue")) +
+  coord_fixed() +
+  theme(legend.position = "bottom")
+  #labs(title = expression(Delta * "Windspeed (m/s)"))
+
+
+
+
+## DEFORESTATION DOT PLOT ##
+
+```{r}
+make_awful_table_def <- function(fit, var){
+  cf  <- summary(fit)$coefficients
+  idx <- grep("r_km:theta_bucket", rownames(cf))
+  trm <- rownames(cf)[idx]
+  data.frame(theta_bucket = sub(".*theta_bucketbucket([^:]+):.*", "\\1", trm),
+             variable = var,
+             year = sub(".*as\\.factor\\(year\\)([0-9]+)$", "\\1", trm),
+             treatment = sub(".*as\\.factor\\(treatment\\)([0-9]+).*", "\\1", trm),
+             p_val = cf[idx, 4],
+             slope = cf[idx, 1],
+             row.names = NULL)
+}
+
+def_GT.mods <- make_awful_table_def(def_glm_GT, "GT")
+def_VPD.mods <- make_awful_table_def(def_glm_VPD, "VPD")
+def_SW.mods <- make_awful_table_def(def_glm_SW, "SW")
+def_SM.mods <- make_awful_table_def(def_glm_SM, "SM")
+def_ET.mods <- make_awful_table_def(def_glm_ET, "ET")
+def_PRCP.mods <- make_awful_table_def(def_glm_PRCP, "PRCP")
+def_W.mods <- make_awful_table_def(def_glm_W, "W")
+
+all_def_mods_table <- bind_rows(def_GT.mods, def_VPD.mods, def_SW.mods, def_SM.mods, def_ET.mods, def_PRCP.mods, def_W.mods)
+
+range(def_GT.mods$slope) #-0.064, 0.064
+range(def_VPD.mods$slope) #-5.64, 5.64
+range(def_SW.mods$slope) #-0.17, 0.17
+range(def_SM.mods$slope) #-0.0013, 0.0013
+range(def_ET.mods$slope) #-4.12e-07, 4.12e-07
+range(def_PRCP.mods$slope) #-0.042, 0.042
+range(def_W.mods$slope) #-0.0013, 0.0013
+
+
+mods_graph_legend_labels <- c("GT" = "GT", "VPD" = "VPD", "ET" = "ET", "SM" = "SM", "SW" = "SW", "PRCP" = "PRCP", "W" = "W")
+
+#var_temp <- all_mods_table$variable == "SM"
+#range(all_mods_table$slope[var_temp])
+
+scico_lims <- list("GT" = c(-0.064, 0.064),
+                   "VPD" = c(-5.64, 5.64),
+                   "ET" = c(-4.12e-07, 4.12e-07),
+                   "SM" = c(-0.0006, 0.0006),
+                   "SW" = c(-0.17, 0.17),
+                   "PRCP" = c(-0.042, 0.042),
+                   "W" = c(-0.0013, 0.0013))
+
+scico_breaks <- list("GT" = c(-0.03, 0.03),
+                   "VPD" = c(-2.5, 2.5),
+                   "ET" = c(-2e-07, 2e-07),
+                   "SM" = c(-0.0003, 0.0003),
+                   "SW" = c(-0.1, 0.1),
+                   "PRCP" = c(-0.021, 0.021),
+                   "W" = c(-0.0007, 0.0007))
+
+
+mods_graph <- ggplot()
+for (g in unique(all_def_mods_table$variable)) {
+  df <- all_def_mods_table %>% filter(variable == g)
+  mods_graph <- mods_graph + new_scale_color() + geom_point(data = df, aes(x = treatment, y = theta_bucket, color = slope, size = pmin(-log10(p_val), 10))) +
+  scale_color_scico(palette = "vik", name = paste(mods_graph_legend_labels[g]), direction = -1, limits = scico_lims[[g]], breaks = scico_breaks[[g]])
+}
+save_mods_graph <- mods_graph + 
+  facet_grid(year ~ variable) +
+  theme_bw() +
+  coord_fixed(ratio = 0.75) +
+  labs(x = "LC Scenario", y = "Theta Bucket") +
+  theme(legend.position = "bottom", legend.key.width = unit(0.62, "cm"), strip.text = element_text(size = 16))
+
+#ggsave("~/Desktop/Def_dotplot3.pdf", save_mods_graph, width = 17, height = 6.5, units = "in")
+
+
+
+
+```
+
+
+
+
+## FIGS 6, 7, 8, 9, & 12) Predictor: where you are in the control space relative to the average || On the Y: the delta value
+
+```{r}
+range(outside_filtered$delta_VPD_t00X) ## -93, 93
+range(outside_filtered$delta_VT_t00X) ## -0.91, 0.91
+range(outside_filtered$delta_SMOIS_t00X) ## -0.03, 0.03 ## -0.032, 0.032
+range(outside_filtered$delta_APAR_t00X) ## -4.60, 4.60
+range(outside_filtered$delta_PSN_t00X) ## -0.91, 0.91 ## -0.98, 0.98
+
+X.VPD <- ggplot() +
+  geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_VPD_t00X), shape = 15, size = 0.33) +
+  scale_color_scico(palette = "vik", name = expression("VPD (Pa)"), limits = range(c(-93, 93))) +
+  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
+  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
+  theme_test() +
+  facet_grid(year ~ treatment) +
+  labs(x = NULL, y = NULL) +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  #standardized_theme +
+  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "bottom")
+
+X.VT <- ggplot() +
+  geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_VT_t00X), shape = 15, size = 0.33) +
+  scale_color_scico(palette = "vik", name = expression("Veg Temp (K)"), limits = range(c(-0.91, 0.91))) +
+  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
+  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
+  theme_test() +
+  facet_grid(year ~ treatment) +
+  labs(x = NULL, y = NULL) +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  #standardized_theme +
+  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "bottom")
+
+X.SM <- ggplot() +
+  geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_SMOIS_t00X), shape = 15, size = 0.33) +
+  scale_color_scico(palette = "vik", name = expression("SM (m3/m3)"), limits = range(c(-0.032, 0.032)), breaks = (c(-0.015, 0.015))) +
+  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
+  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
+  theme_test() +
+  facet_grid(year ~ treatment) +
+  labs(x = NULL, y = NULL) +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  #standardized_theme +
+  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "bottom")
+
+X.APAR <- ggplot() +
+  geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_APAR_t00X), shape = 15, size = 0.33) +
+  scale_color_scico(palette = "vik", name = expression("APAR (W/m2/)"), limits = range(c(-4.60, 4.60))) +
+  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
+  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
+  theme_test() +
+  facet_grid(year ~ treatment) +
+  labs(x = NULL, y = NULL) +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  #standardized_theme +
+  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "bottom")
+
+full_6789 <- ggarrange(X.APAR, X.VT, X.VPD, X.SM, ncol = 1)
+
+ggsave("~/Desktop/full.pdf", full_6789, width = 12, height = 18, units = "in")
+
+
+X.GPP <- ggplot() +
+  geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_PSN_t00X), shape = 15, size = 0.33) +
+  scale_color_scico(palette = "vik", name = expression("GPP (umol co2/m2/s)"), limits = range(c(-0.98, 0.98))) +
+  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
+  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
+  theme_test() +
+  facet_grid(year ~ treatment) +
+  labs(x = NULL, y = NULL) +
+  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  #standardized_theme +
+  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "bottom")
+
+#ggsave("~/Desktop/outside_filtered/X.VPD.pdf", X.VPD, width = 12, height = 4.5, units = "in")
+#ggsave("~/Desktop/outside_filtered/X.VT.pdf", X.VT, width = 12, height = 4.5, units = "in")
+#ggsave("~/Desktop/outside_filtered/X.SM.pdf", X.SM, width = 12, height = 4.5, units = "in")
+#ggsave("~/Desktop/outside_filtered/X.APAR.pdf", X.APAR, width = 12, height = 4.5, units = "in")
+#ggsave("~/Desktop/outside_filtered/X.GPP.pdf", X.GPP, width = 12, height = 4.5, units = "in")
+```
+
+
+
+
+## MODEL CODE
+
+```{r}
+# FIRST ORDER OF BUSINESS: COMBINE ALL THE DATAFRAMES, INCLUDING INFO RELATED TO SOIL TYPE, ELEVATION, ETC.
+```
+
