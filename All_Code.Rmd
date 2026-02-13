@@ -828,7 +828,7 @@ masks <- bind_rows(mask001, mask002, mask003, mask004, mask005, mask006)
 X.VPD <- ggplot() +
   geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_VPD_t00X), shape = 15, size = 0.33) +
   geom_point(data = inside, aes(x = Longitude, y = Latitude, color = delta_VPD_t00X), shape = 15, size = 0.33) +
-  scale_color_scico(palette = "vik", name = expression("Pa"), limits = range(c(-93, 93))) +
+  scale_color_scico(palette = "vik", direction = -1, name = expression("Pa"), limits = range(c(-93, 93))) +
   geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
   geom_polygon(data = masks, aes(x = long, y = lat), color = "green", fill = NA, linewidth = 0.5) +
   #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
@@ -844,7 +844,7 @@ X.VPD <- ggplot() +
 X.VT <- ggplot() +
   geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_VT_t00X), shape = 15, size = 0.33) +
   geom_point(data = inside, aes(x = Longitude, y = Latitude, color = delta_GT_t00X), shape = 15, size = 0.33) +
-  scale_color_scico(palette = "vik", name = expression("K"), limits = range(c(-0.91, 0.91))) +
+  scale_color_scico(palette = "vik", direction = -1, name = expression("K"), limits = range(c(-0.91, 0.91))) +
   geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
   geom_polygon(data = masks, aes(x = long, y = lat), color = "green", fill = NA, linewidth = 0.5) +
   #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
@@ -860,7 +860,7 @@ X.VT <- ggplot() +
 X.SM <- ggplot() +
   geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_SMOIS_t00X), shape = 15, size = 0.33) +
   geom_point(data = inside, aes(x = Longitude, y = Latitude, color = delta_SMOIS_t00X), shape = 15, size = 0.33) +
-  scale_color_scico(palette = "vik", name = expression("m3/m3"), limits = range(c(-0.038, 0.038)), breaks = (c(-0.015, 0.015))) +
+  scale_color_scico(palette = "vik", direction = -1, name = expression("m3/m3"), limits = range(c(-0.038, 0.038)), breaks = (c(-0.015, 0.015))) +
   geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
   geom_polygon(data = masks, aes(x = long, y = lat), color = "green", fill = NA, linewidth = 0.5) +
   #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
@@ -876,7 +876,7 @@ X.SM <- ggplot() +
 X.APAR <- ggplot() +
   geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_APAR_t00X), shape = 15, size = 0.33) +
   geom_point(data = inside, aes(x = Longitude, y = Latitude, color = delta_SWDOWN_t00X), shape = 15, size = 0.33) +
-  scale_color_scico(palette = "vik", name = expression("W/m2"), limits = range(c(-4.60, 4.60))) +
+  scale_color_scico(palette = "vik", direction = -1, name = expression("W/m2"), limits = range(c(-4.60, 4.60))) +
   geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
   geom_polygon(data = masks, aes(x = long, y = lat), color = "green", fill = NA, linewidth = 0.5) +
   #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
@@ -896,7 +896,7 @@ full_6789 <- ggarrange(X.APAR, X.VT, X.VPD, X.SM, ncol = 1)
 
 X.GPP <- ggplot() +
   geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_PSN_t00X), shape = 15, size = 0.33) +
-  scale_color_scico(palette = "vik", name = expression("GPP (umol co2/m2/s)"), limits = range(c(-0.98, 0.98))) +
+  scale_color_scico(palette = "vik", direction = -1, name = expression("GPP (umol co2/m2/s)"), limits = range(c(-0.98, 0.98))) +
   geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
   geom_polygon(data = masks, aes(x = long, y = lat), color = "green", linewidth = 0.5) +
   #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
@@ -941,7 +941,8 @@ vpd.mod.carter.mods <- make_awful_carter_table(vpd.mod.carter, "VPD")
 vt.mod.carter.mods <- make_awful_carter_table(vt.mod.carter, "VT")
 apar.mod.carter.mods <- make_awful_carter_table(apar.mod.carter, "APAR")
 
-all_mods_table_carter <- bind_rows(gpp.mod.carter.mods, sm.mod.carter.mods, vpd.mod.carter.mods, vt.mod.carter.mods, apar.mod.carter.mods)
+all_mods_table_carter <- bind_rows(gpp.mod.carter.mods, sm.mod.carter.mods, vpd.mod.carter.mods, vt.mod.carter.mods, apar.mod.carter.mods) %>% 
+  mutate(p_val = ifelse(p_val > 0.01, NA, p_val))
 
 range(gpp.mod.carter.mods$slope) #-0.23, 0.23
 range(sm.mod.carter.mods$slope) #-0.0040, 0.0040
@@ -966,14 +967,14 @@ scico_breaks_carter <- list("APAR" = c(-2, 0, 2),
 mods_graph_carter <- ggplot()
 for (g in unique(all_mods_table_carter$variable)) {
   df <- all_mods_table_carter %>% filter(variable == g)
-  mods_graph_carter <- mods_graph_carter + new_scale_color() + geom_point(data = df, aes(x = treatment, y = as.factor(year), color = slope, size = pmin(-log10(p_val), 3))) +
+  mods_graph_carter <- mods_graph_carter + new_scale_color() + geom_point(data = df, aes(x = treatment, y = as.factor(year), color = slope, size = pmin(-log10(p_val), 10))) +
   scale_color_scico(palette = "vik", name = paste(mods_graph_legend_labels_carter[g]), direction = -1, limits = scico_lims_carter[[g]], breaks = scico_breaks_carter[[g]])
 }
 save_mods_graph_carter <- mods_graph_carter + 
   facet_wrap( ~ variable, nrow = 1) +
   theme_bw() +
   coord_fixed(ratio = 1) +
-  labs(x = "LC Scenario", y = "Year", size = NULL, title = "b) Outside Environmental Variables") +
+  labs(x = "Deforestation Scenario", y = "Year", size = NULL, title = "b) Outside Environmental Variables") +
   theme(legend.position = "bottom", legend.key.width = unit(0.62, "cm"), strip.text = element_text(size = 14), plot.title = element_text(size = 16))
 
 
@@ -1007,7 +1008,8 @@ def2_ET.mods <- make_awful_carter_table_def2(def2_glm_ET, "ET")
 def2_PRCP.mods <- make_awful_carter_table_def2(def2_glm_PRCP, "PRCP")
 def2_W.mods <- make_awful_carter_table_def2(def2_glm_W, "W")
 
-all_mods_table_def2 <- bind_rows(def2_GT.mods, def2_VPD.mods, def2_SW.mods, def2_SM.mods, def2_ET.mods, def2_PRCP.mods, def2_W.mods)
+all_mods_table_def2 <- bind_rows(def2_GT.mods, def2_VPD.mods, def2_SW.mods, def2_SM.mods, def2_ET.mods, def2_PRCP.mods, def2_W.mods) %>% 
+  mutate(p_val = ifelse(p_val > 0.01, NA, p_val))
 
 range(def2_GT.mods$slope) #-130, 130
 range(def2_VPD.mods$slope) #-275, 275
@@ -1043,14 +1045,14 @@ scico_breaks2 <- list("GT" = c(-65, 65),
 mods_graph_carter2 <- ggplot()
 for (g in unique(all_mods_table_def2$variable)) {
   df <- all_mods_table_def2 %>% filter(variable == g)
-  mods_graph_carter2 <- mods_graph_carter2 + new_scale_color() + geom_point(data = df, aes(x = treatment, y = as.factor(year), color = slope, size = pmin(-log10(p_val), 3))) +
+  mods_graph_carter2 <- mods_graph_carter2 + new_scale_color() + geom_point(data = df, aes(x = treatment, y = as.factor(year), color = slope, size = pmin(-log10(p_val), 10))) +
   scale_color_scico(palette = "bam", name = paste(mods_graph_legend_labels_def2[g]), direction = -1, limits = scico_lims2[[g]], breaks = scico_breaks2[[g]])
 }
 save_mods_graph_carter_def2 <- mods_graph_carter2 + 
   facet_wrap( ~ variable, nrow = 1) +
   theme_bw() +
   coord_fixed(ratio = 1) +
-  labs(x = "LC Scenario", y = "Year", size = NULL, title = "a) Inside Environmental Variables") +
+  labs(x = "Deforestation Scenario", y = "Year", size = NULL, title = "a) Inside Environmental Variables") +
   theme(legend.position = "bottom", legend.key.width = unit(0.62, "cm"), strip.text = element_text(size = 14), plot.title = element_text(size = 16))
 #size = "min(-log10(p),10)"
 
@@ -1058,9 +1060,6 @@ combined_S1_6 <- ggarrange(save_mods_graph_carter_def2, save_mods_graph_carter, 
 
 ggsave("~/Desktop/combined_S1_6.pdf", combined_S1_6, width = 17, height = 6, units = "in")
 
-#ggsave("~/Desktop/save_mods_graph_carter_def2.pdf", save_mods_graph_carter_def2, width = 17, height = 2.6, units = "in")
-
-#ggsave("~/Desktop/outside_filtered/FIG10.pdf", save_mods_graph_carter, width = 14, height = 2.6, units = "in")
 ```
 
 
@@ -1092,7 +1091,8 @@ SM.mods <- make_awful_table(glm_SM, "SM")
 APAR.mods <- make_awful_table(glm_APAR, "APAR")
 GPP.mods <- make_awful_table(glm_GPP, "GPP")
 
-all_mods_table <- bind_rows(VT.mods, VPD.mods, SM.mods, APAR.mods, GPP.mods)
+all_mods_table <- bind_rows(VT.mods, VPD.mods, SM.mods, APAR.mods, GPP.mods) %>% 
+  mutate(p_val = ifelse(p_val > 0.01, NA, p_val))
 
 all_mods_table <- all_mods_table %>% mutate(theta_bucket2 = recode(theta_bucket, '1' = "ENE", '2' = "NNE", '3' = "NNW", '4' = "WNW", '5' = "WSW", '6' = "SSW", '7' = "SSE", '8' = "ESE"))
 all_mods_table$theta_bucket2 <- factor(all_mods_table$theta_bucket2, levels = c("ENE", "NNE", "NNW", "WNW", "WSW", "SSW", "SSE", "ESE"))
@@ -1116,7 +1116,7 @@ scico_lims <- list("APAR" = c(-0.0105, 0.0105),
                    "VT" = c(-0.00262, 0.00262))
 
 scico_breaks <- list("APAR" = c(-0.0055, 0.0055),
-                   "GPP" = c(-0.0026, 0.0026),
+                   "GPP" = c(-0.00175, 0.00175),
                    "SM" = c(-0.000043, 0.000043),
                    "VPD" = c(-0.22, 0.22),
                    "VT" = c(-0.0014, 0.0014))
@@ -1132,7 +1132,7 @@ save_mods_graph <- mods_graph +
   facet_grid(year ~ variable) +
   theme_bw() +
   coord_fixed(ratio = 0.75) +
-  labs(x = "Deforestation Scenario", y = "Cardinal Direction") +
+  labs(x = "Deforestation Scenario", size = NULL, y = "Cardinal Direction") +
   theme(legend.position = "bottom", legend.key.width = unit(0.62, "cm"), strip.text = element_text(size = 16))
 
 
@@ -1180,7 +1180,7 @@ masks <- bind_rows(mask001, mask002, mask003, mask004, mask005, mask006)
 X.ALBEDO <- ggplot() +
   geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_ALBEDO_t00X), shape = 15, size = 0.33) +
   geom_point(data = inside, aes(x = Longitude, y = Latitude, color = delta_ALBEDO_t00X), shape = 15, size = 0.33) +
-  scale_color_scico(palette = "vik", name = expression("--"), limits = range(c(-0.053, 0.053))) +
+  scale_color_scico(palette = "vik", direction = -1, name = expression("--"), limits = range(c(-0.053, 0.053))) +
   geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
   geom_polygon(data = masks, aes(x = long, y = lat), color = "green", fill = NA, linewidth = 0.5) +
   #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
@@ -1196,7 +1196,7 @@ X.ALBEDO <- ggplot() +
 X.ET <- ggplot() +
   geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_ET_t00X), shape = 15, size = 0.33) +
   geom_point(data = inside, aes(x = Longitude, y = Latitude, color = delta_ET_t00X), shape = 15, size = 0.33) +
-  scale_color_scico(palette = "vik", name = expression("mm s" ^{-1}), limits = range(c(-1.74e-05, 1.74e-05))) +
+  scale_color_scico(palette = "vik", direction = -1, name = expression("mm s" ^{-1}), limits = range(c(-1.74e-05, 1.74e-05))) +
   geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
   geom_polygon(data = masks, aes(x = long, y = lat), color = "green", fill = NA, linewidth = 0.5) +
   #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
@@ -1212,7 +1212,7 @@ X.ET <- ggplot() +
 X.PRCP <- ggplot() +
   geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_RAINNC_t00X), shape = 15, size = 0.33) +
   geom_point(data = inside, aes(x = Longitude, y = Latitude, color = delta_RAINNC_t00X), shape = 15, size = 0.33) +
-  scale_color_scico(palette = "vik", name = expression("mm day" ^{-1}), limits = range(c(-2.35, 2.35)), breaks = (c(-1, 1))) +
+  scale_color_scico(palette = "vik", direction = -1, name = expression("mm day" ^{-1}), limits = range(c(-2.35, 2.35)), breaks = (c(-1, 1))) +
   geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
   geom_polygon(data = masks, aes(x = long, y = lat), color = "green", fill = NA, linewidth = 0.5) +
   #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
@@ -1228,7 +1228,7 @@ X.PRCP <- ggplot() +
 X.W <- ggplot() +
   geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_W_t00X), shape = 15, size = 0.33) +
   geom_point(data = inside, aes(x = Longitude, y = Latitude, color = delta_W_t00X), shape = 15, size = 0.33) +
-  scale_color_scico(palette = "vik", name = expression("m s" ^{-1}), limits = range(c(-0.172, 0.172))) +
+  scale_color_scico(palette = "vik", direction = -1, name = expression("m s" ^{-1}), limits = range(c(-0.172, 0.172))) +
   geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
   geom_polygon(data = masks, aes(x = long, y = lat), color = "green", fill = NA, linewidth = 0.5) +
   #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
@@ -1422,18 +1422,95 @@ APAR.VT.SM.glm <- glm(delta_PSN_t00X ~ delta_APAR_t00X + delta_VT_t00X + delta_S
 APAR.VT.SM.VPD.glm <- glm(delta_PSN_t00X ~ delta_APAR_t00X + delta_VT_t00X + delta_SMOIS_t00X + delta_VPD_t00X + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
 APAR.VT.SM.VPD.AVG_CTRL.glm <- glm(delta_PSN_t00X ~ delta_APAR_t00X + delta_VT_t00X + delta_SMOIS_t00X + delta_VPD_t00X + Mean_CTRL_PSN + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
 
-GLM_Table <- data.frame(VARIABLE = c("Intercept Only", "Base Model", "AVG.CTRL.GPP", "X.APAR", "X.SM", "X.VT", "X.VPD", "X.VT + X.APAR", "X.VT + X.APAR + X.SM", "X.VT + X.APAR + X.SM + X.VPD"),
-                        AIC = c(AIC(intercept.glm), AIC(null.glm), AIC(AVG.CTRL.GPP.glm), AIC(X.APAR.glm), AIC(X.SM.glm), AIC(X.VT.glm), AIC(X.VPD.glm), AIC(APAR.VT.glm), AIC(APAR.VT.SM.glm), AIC(APAR.VT.SM.VPD.glm)),
-                        delta_AIC = c(NA, AIC(null.glm)-AIC(intercept.glm), AIC(AVG.CTRL.GPP.glm)-AIC(intercept.glm), AIC(X.APAR.glm)-AIC(intercept.glm), AIC(X.SM.glm)-AIC(intercept.glm), AIC(X.VT.glm)-AIC(intercept.glm), AIC(X.VPD.glm)-AIC(intercept.glm), AIC(APAR.VT.glm)-AIC(intercept.glm), AIC(APAR.VT.SM.glm)-AIC(intercept.glm), AIC(APAR.VT.SM.VPD.glm)-AIC(intercept.glm)))
 
-kable(GLM_Table, format = "latex", digits = 4, booktabs = TRUE)
+best.model.glm <- glm(delta_PSN_t00X ~ as.factor(year):as.factor(treatment):delta_APAR_t00X + as.factor(year):as.factor(treatment):delta_VT_t00X + as.factor(year):as.factor(treatment):delta_SMOIS_t00X + as.factor(year):as.factor(treatment):delta_VPD_t00X + as.factor(year):as.factor(treatment):Mean_CTRL_PSN + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
+
+#GLM_Table <- data.frame(VARIABLE = c("Intercept Only", "Base Model", "AVG.CTRL.GPP", "X.APAR", "X.SM", "X.VT", "X.VPD", "X.VT + X.APAR", "X.VT + X.APAR + X.SM", "X.VT + X.APAR + X.SM + X.VPD"),
+#                        AIC = c(AIC(intercept.glm), AIC(null.glm), AIC(AVG.CTRL.GPP.glm), AIC(X.APAR.glm), AIC(X.SM.glm), AIC(X.VT.glm), AIC(X.VPD.glm), AIC(APAR.VT.glm), AIC(APAR.VT.SM.glm), AIC(APAR.VT.SM.VPD.glm)),
+#                        delta_AIC = c(NA, AIC(null.glm)-AIC(intercept.glm), AIC(AVG.CTRL.GPP.glm)-AIC(intercept.glm), AIC(X.APAR.glm)-AIC(intercept.glm), AIC(X.SM.glm)-AIC(intercept.glm), AIC(X.VT.glm)-AIC(intercept.glm), AIC(X.VPD.glm)-AIC(intercept.glm), AIC(APAR.VT.glm)-AIC(intercept.glm), AIC(APAR.VT.SM.glm)-AIC(intercept.glm), AIC(APAR.VT.SM.VPD.glm)-AIC(intercept.glm)))
+
+#kable(GLM_Table, format = "latex", digits = 4, booktabs = TRUE)
 
 
-Ford_formatted_GLM_Table <- data.frame(VARIABLE = c("X.VT + X.APAR + X.SM + X.VPD + AVG.CTRL.GPP", "X.VT + X.APAR + X.SM + X.VPD", "X.VT + X.APAR + X.SM", "X.SM", "X.VPD", "X.VT + X.APAR", "X.APAR", "X.VT", "AVG.CTRL.GPP", "Base Model", "Intercept Only"),
-                                       AIC = c(AIC(APAR.VT.SM.VPD.AVG_CTRL.glm), AIC(APAR.VT.SM.VPD.glm), AIC(APAR.VT.SM.glm), AIC(X.SM.glm), AIC(X.VPD.glm), AIC(APAR.VT.glm), AIC(X.APAR.glm), AIC(X.VT.glm), AIC(AVG.CTRL.GPP.glm), AIC(null.glm), AIC(intercept.glm)),
-                                       delta_AIC = c(NA, AIC(APAR.VT.SM.VPD.glm)-AIC(APAR.VT.SM.VPD.AVG_CTRL.glm), AIC(APAR.VT.SM.glm)-AIC(APAR.VT.SM.VPD.AVG_CTRL.glm), AIC(X.SM.glm)-AIC(APAR.VT.SM.VPD.AVG_CTRL.glm), AIC(X.VPD.glm)-AIC(APAR.VT.SM.VPD.AVG_CTRL.glm), AIC(APAR.VT.glm)-AIC(APAR.VT.SM.VPD.AVG_CTRL.glm), AIC(X.APAR.glm)-AIC(APAR.VT.SM.VPD.AVG_CTRL.glm), AIC(X.VT.glm)-AIC(APAR.VT.SM.VPD.AVG_CTRL.glm), AIC(AVG.CTRL.GPP.glm)-AIC(APAR.VT.SM.VPD.AVG_CTRL.glm), AIC(null.glm)-AIC(APAR.VT.SM.VPD.AVG_CTRL.glm), AIC(intercept.glm)-AIC(APAR.VT.SM.VPD.AVG_CTRL.glm)))
+Ford_formatted_GLM_Table <- data.frame(VARIABLE = c("Best Model", "X.VT + X.APAR + X.SM + X.VPD + AVG.CTRL.GPP", "X.VT + X.APAR + X.SM + X.VPD", "X.VT + X.APAR + X.SM", "X.SM", "X.VPD", "X.VT + X.APAR", "X.APAR", "X.VT", "AVG.CTRL.GPP", "Base Model", "Intercept Only"),
+                                       AIC = c(AIC(best.model.glm), AIC(APAR.VT.SM.VPD.AVG_CTRL.glm), AIC(APAR.VT.SM.VPD.glm), AIC(APAR.VT.SM.glm), AIC(X.SM.glm), AIC(X.VPD.glm), AIC(APAR.VT.glm), AIC(X.APAR.glm), AIC(X.VT.glm), AIC(AVG.CTRL.GPP.glm), AIC(null.glm), AIC(intercept.glm)),
+                                       delta_AIC = c(NA, AIC(APAR.VT.SM.VPD.AVG_CTRL.glm)-AIC(best.model.glm), AIC(APAR.VT.SM.VPD.glm)-AIC(best.model.glm), AIC(APAR.VT.SM.glm)-AIC(best.model.glm), AIC(X.SM.glm)-AIC(best.model.glm), AIC(X.VPD.glm)-AIC(best.model.glm), AIC(APAR.VT.glm)-AIC(best.model.glm), AIC(X.APAR.glm)-AIC(best.model.glm), AIC(X.VT.glm)-AIC(best.model.glm), AIC(AVG.CTRL.GPP.glm)-AIC(best.model.glm), AIC(null.glm)-AIC(best.model.glm), AIC(intercept.glm)-AIC(best.model.glm)))
 
 kable(Ford_formatted_GLM_Table, format = "latex", digits = 2, booktabs = TRUE)
+
+
+
+##THIS CODE SUCKS, BUT WORKS. MODIFIED OTHER CODE IN LAZIEST WAY POSSIBLE. WHOOPS.
+last_awful_table <- function(fit){
+  cf  <- summary(fit)$coefficients
+  idx <- grep("as\\.factor\\(year\\).*as\\.factor\\(treatment\\).*", rownames(cf))
+  trm <- rownames(cf)[idx]
+  data.frame(year = sub(".*as\\.factor\\(year\\)([0-9]+)$", "\\1", trm),
+             treatment = sub(".*as\\.factor\\(treatment\\)([0-9]+).*", "\\1", trm),
+             p_val = cf[idx, 4],
+             slope = cf[idx, 1],
+             row.names = NULL)
+}
+
+last.awful.mod <- last_awful_table(best.model.glm) %>% slice(1:60) %>% separate(year, into = c("year", "treatment", "variable"), sep = ":") %>% mutate(year = sub("as\\.factor\\(year\\)", "", year), treatment = sub("as\\.factor\\(treatment\\)", "", treatment))
+
+#last.awful.mod.pivoted <- last.awful.mod %>% select(-p_val) %>% pivot_wider(names_from = variable, values_from = slope)
+#write.csv(last.awful.mod.pivoted, "~/Desktop/data_for_aov.csv")
+
+
+last.awful.mod.2017 <- last.awful.mod %>% filter(year == 2017) %>% select(-p_val, -year) %>% pivot_wider(names_from = variable, values_from = slope)
+last.awful.mod.2018 <- last.awful.mod %>% filter(year == 2018) %>% select(-p_val, -year) %>% pivot_wider(names_from = variable, values_from = slope)
+last.awful.mod.summary <- last.awful.mod %>% group_by(year, variable) %>% summarize(slope = mean(slope))
+kable(t(last.awful.mod.2017), format = "latex", digits = 2, booktabs = TRUE)
+kable(t(last.awful.mod.2018), format = "latex", digits = 2, booktabs = TRUE)
+kable(last.awful.mod.summary, format = "latex", digits = 4, booktabs = TRUE)
+
+
+require(emmeans)
+
+outside_filtered2 <- outside_filtered %>% mutate(year = as.factor(year), treatment = as.factor(treatment))
+
+best.model.glm2 <- glm(delta_PSN_t00X ~ year:treatment:delta_APAR_t00X + year:treatment:delta_VT_t00X + year:treatment:delta_SMOIS_t00X + year:treatment:delta_VPD_t00X + year:treatment:Mean_CTRL_PSN + theta_bucket:distance_to_LU16_km:year:treatment, data = outside_filtered2, family = gaussian)
+
+sm_slopes_compared <- emtrends(best.model.glm2, pairwise ~ year:treatment, nesting = NULL, var = "delta_SMOIS_t00X", adjust = "Tukey")
+vt_slopes_compared <- emtrends(best.model.glm2, pairwise ~ year:treatment, nesting = NULL, var = "delta_VT_t00X", adjust = "Tukey")
+apar_slopes_compared <- emtrends(best.model.glm2, pairwise ~ year:treatment, nesting = NULL, var = "delta_APAR_t00X", adjust = "Tukey")
+vpd_slopes_compared <- emtrends(best.model.glm2, pairwise ~ year:treatment, nesting = NULL, var = "delta_VPD_t00X", adjust = "Tukey")
+mean.gpp_slopes_compared <- emtrends(best.model.glm2, pairwise ~ year:treatment, nesting = NULL, var = "Mean_CTRL_PSN", adjust = "Tukey")
+
+sm_slopes_stat_sig <- summary(sm_slopes_compared$contrasts) %>% mutate(significant = ifelse(p.value <= 0.01, 1, 0)) %>% mutate(SM_est_se = paste0(round(estimate,2), "pm", round(SE,2), ifelse(significant == 1, "*", "")))
+vt_slopes_stat_sig <- summary(vt_slopes_compared$contrasts) %>% mutate(significant = ifelse(p.value <= 0.01, 1, 0)) %>% mutate(VT_est_se = paste0(round(estimate,3), "pm", round(SE,3), ifelse(significant == 1, "*", "")))
+apar_slopes_stat_sig <- summary(apar_slopes_compared$contrasts) %>% mutate(significant = ifelse(p.value <= 0.01, 1, 0)) %>% mutate(APAR_est_se = paste0(round(estimate,4), "pm", round(SE,4), ifelse(significant == 1, "*", "")))
+vpd_slopes_stat_sig <- summary(vpd_slopes_compared$contrasts) %>% mutate(significant = ifelse(p.value <= 0.01, 1, 0)) %>% mutate(VPD_est_se = paste0(round(estimate,4), "pm", round(SE,4), ifelse(significant == 1, "*", "")))
+mean.gpp_slopes_stat_sig <- summary(mean.gpp_slopes_compared$contrasts) %>% mutate(significant = ifelse(p.value <= 0.01, 1, 0)) %>% mutate(Init.GPP_est_se = paste0(round(estimate,4), "pm", round(SE,4), ifelse(significant == 1, "*", "")))
+
+prop.table(table(sm_slopes_stat_sig$significant))
+prop.table(table(vt_slopes_stat_sig$significant))
+prop.table(table(apar_slopes_stat_sig$significant))
+prop.table(table(vpd_slopes_stat_sig$significant))
+prop.table(table(mean.gpp_slopes_stat_sig$significant))
+
+sm_slopes_stat_sig2 <- sm_slopes_stat_sig %>% select(contrast, SM_est_se)
+vt_slopes_stat_sig2 <- vt_slopes_stat_sig %>% select(contrast, VT_est_se)
+apar_slopes_stat_sig2 <- apar_slopes_stat_sig %>% select(contrast, APAR_est_se)
+vpd_slopes_stat_sig2 <- vpd_slopes_stat_sig %>% select(contrast, VPD_est_se)
+mean.gpp_slopes_stat_sig2 <- mean.gpp_slopes_stat_sig %>% select(contrast, Init.GPP_est_se)
+
+slopes_table <- left_join(sm_slopes_stat_sig2, vt_slopes_stat_sig2, by = "contrast")
+slopes_table <- left_join(slopes_table, apar_slopes_stat_sig2, by = "contrast")
+slopes_table <- left_join(slopes_table, vpd_slopes_stat_sig2, by = "contrast")
+slopes_table <- left_join(slopes_table, mean.gpp_slopes_stat_sig2, by = "contrast")
+
+#sm_slopes_stat_sig2 <- sm_slopes_stat_sig %>% mutate(SM.p.val = ifelse(p.value <= 0.01, "*", NA)) %>% select(contrast, SM.p.val)
+#vt_slopes_stat_sig2 <- vt_slopes_stat_sig %>% mutate(VT.p.val = ifelse(p.value <= 0.01, "*", NA)) %>% select(contrast, VT.p.val)
+#apar_slopes_stat_sig2 <- apar_slopes_stat_sig %>% mutate(APAR.p.val = ifelse(p.value <= 0.01, "*", NA)) %>% select(contrast, APAR.p.val)
+#vpd_slopes_stat_sig2 <- vpd_slopes_stat_sig %>% mutate(VPD.p.val = ifelse(p.value <= 0.01, "*", NA)) %>% select(contrast, VPD.p.val)
+#mean.gpp_slopes_stat_sig2 <- mean.gpp_slopes_stat_sig %>% mutate(Mean.GPP.p.val = ifelse(p.value <= 0.01, "*", NA)) %>% select(contrast, Mean.GPP.p.val)
+
+
+
+options(knitr.kable.NA = '')
+kable(slopes_table, format = "latex", digits = 4, booktabs = TRUE)
 
 ```
 
