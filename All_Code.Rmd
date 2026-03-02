@@ -28,7 +28,7 @@ require(knitr)
 ```
 
 
-## Infrastructure
+## Map Code (Infrastructure to run other cells)
 
 ```{r pressure, include=FALSE}
 states <- st_read("./data/geography/cb_2018_us_state_500k.shp")
@@ -66,7 +66,262 @@ standardized_theme <- theme(legend.text = element_text(size = 10), legend.title 
 ```
 
 
-## Import CSVs
+## MAKING INSIDE DEFORESTATION DATA FRAME:
+
+```{r}
+inside_18.001 <- read.csv("./data/csvs/deforested/December2025_18.001_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 1) %>% select(-X)
+inside_18.002 <- read.csv("./data/csvs/deforested/December2025_18.002_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 2) %>% select(-X)
+inside_18.003 <- read.csv("./data/csvs/deforested/December2025_18.003_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 3) %>% select(-X)
+inside_18.004 <- read.csv("./data/csvs/deforested/December2025_18.004_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 4) %>% select(-X)
+inside_18.005 <- read.csv("./data/csvs/deforested/December2025_18.005_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 5) %>% select(-X)
+inside_18.006 <- read.csv("./data/csvs/deforested/December2025_18.006_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 6) %>% select(-X)
+
+inside_17.001 <- read.csv("./data/csvs/deforested/December2025_17.001_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 1) %>% select(-X)
+inside_17.002 <- read.csv("./data/csvs/deforested/December2025_17.002_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 2) %>% select(-X)
+inside_17.003 <- read.csv("./data/csvs/deforested/December2025_17.003_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 3) %>% select(-X)
+inside_17.004 <- read.csv("./data/csvs/deforested/December2025_17.004_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 4) %>% select(-X)
+inside_17.005 <- read.csv("./data/csvs/deforested/December2025_17.005_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 5) %>% select(-X)
+inside_17.006 <- read.csv("./data/csvs/deforested/December2025_17.006_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 6) %>% select(-X)
+inside <- bind_rows(inside_18.001, inside_18.002, inside_18.003, inside_18.004, inside_18.005, inside_18.006, inside_17.001, inside_17.002, inside_17.003, inside_17.004, inside_17.005, inside_17.006)
+
+inside_ALBEDO_SWDOWN_18.001 <- read.csv("./data/csvs/deforested/December2025_18.001_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 1) %>% select(-X)
+inside_ALBEDO_SWDOWN_18.002 <- read.csv("./data/csvs/deforested/December2025_18.002_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 2) %>% select(-X)
+inside_ALBEDO_SWDOWN_18.003 <- read.csv("./data/csvs/deforested/December2025_18.003_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 3) %>% select(-X)
+inside_ALBEDO_SWDOWN_18.004 <- read.csv("./data/csvs/deforested/December2025_18.004_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 4) %>% select(-X)
+inside_ALBEDO_SWDOWN_18.005 <- read.csv("./data/csvs/deforested/December2025_18.005_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 5) %>% select(-X)
+inside_ALBEDO_SWDOWN_18.006 <- read.csv("./data/csvs/deforested/December2025_18.006_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 6) %>% select(-X)
+
+inside_ALBEDO_SWDOWN_17.001 <- read.csv("./data/csvs/deforested/December2025_17.001_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 1) %>% select(-X)
+inside_ALBEDO_SWDOWN_17.002 <- read.csv("./data/csvs/deforested/December2025_17.002_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 2) %>% select(-X)
+inside_ALBEDO_SWDOWN_17.003 <- read.csv("./data/csvs/deforested/December2025_17.003_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 3) %>% select(-X)
+inside_ALBEDO_SWDOWN_17.004 <- read.csv("./data/csvs/deforested/December2025_17.004_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 4) %>% select(-X)
+inside_ALBEDO_SWDOWN_17.005 <- read.csv("./data/csvs/deforested/December2025_17.005_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 5) %>% select(-X)
+inside_ALBEDO_SWDOWN_17.006 <- read.csv("./data/csvs/deforested/December2025_17.006_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 6) %>% select(-X)
+inside_ALBEDO_SWDOWN <- bind_rows(inside_ALBEDO_SWDOWN_18.001, inside_ALBEDO_SWDOWN_18.002, inside_ALBEDO_SWDOWN_18.003, inside_ALBEDO_SWDOWN_18.004, inside_ALBEDO_SWDOWN_18.005, inside_ALBEDO_SWDOWN_18.006, inside_ALBEDO_SWDOWN_17.001, inside_ALBEDO_SWDOWN_17.002, inside_ALBEDO_SWDOWN_17.003, inside_ALBEDO_SWDOWN_17.004, inside_ALBEDO_SWDOWN_17.005, inside_ALBEDO_SWDOWN_17.006)
+
+
+inside_VERTICAL_WS_18.001 <- read.csv("./data/csvs/July2025/July2025_18.001_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 1) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+inside_VERTICAL_WS_18.002 <- read.csv("./data/csvs/July2025/July2025_18.002_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 2) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+inside_VERTICAL_WS_18.003 <- read.csv("./data/csvs/July2025/July2025_18.003_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 3) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+inside_VERTICAL_WS_18.004 <- read.csv("./data/csvs/July2025/July2025_18.004_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 4) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+inside_VERTICAL_WS_18.005 <- read.csv("./data/csvs/July2025/July2025_18.005_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 5) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+inside_VERTICAL_WS_18.006 <- read.csv("./data/csvs/July2025/July2025_18.006_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 6) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+
+inside_VERTICAL_WS_17.001 <- read.csv("./data/csvs/July2025/July2025_17.001_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 1) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+inside_VERTICAL_WS_17.002 <- read.csv("./data/csvs/July2025/July2025_17.002_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 2) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+inside_VERTICAL_WS_17.003 <- read.csv("./data/csvs/July2025/July2025_17.003_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 3) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+inside_VERTICAL_WS_17.004 <- read.csv("./data/csvs/July2025/July2025_17.004_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 4) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+inside_VERTICAL_WS_17.005 <- read.csv("./data/csvs/July2025/July2025_17.005_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 5) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+inside_VERTICAL_WS_17.006 <- read.csv("./data/csvs/July2025/July2025_17.006_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 6) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+inside_VERTICAL_WS <- bind_rows(inside_VERTICAL_WS_18.001, inside_VERTICAL_WS_18.002, inside_VERTICAL_WS_18.003, inside_VERTICAL_WS_18.004, inside_VERTICAL_WS_18.005, inside_VERTICAL_WS_18.006, inside_VERTICAL_WS_17.001, inside_VERTICAL_WS_17.002, inside_VERTICAL_WS_17.003, inside_VERTICAL_WS_17.004, inside_VERTICAL_WS_17.005, inside_VERTICAL_WS_17.006)
+
+
+inside <- full_join(inside, inside_ALBEDO_SWDOWN, by = c("Latitude", "Longitude", "treatment", "year", "tLU_INDEX", "cLU_INDEX"))
+inside <- full_join(inside, inside_VERTICAL_WS, by = c("Latitude", "Longitude", "treatment", "year", "tLU_INDEX", "cLU_INDEX"))
+
+rm(inside_ALBEDO_SWDOWN, inside_VERTICAL_WS, inside_VERTICAL_WS_17.001, inside_VERTICAL_WS_17.002, inside_VERTICAL_WS_17.003, inside_VERTICAL_WS_17.004, inside_VERTICAL_WS_17.005, inside_VERTICAL_WS_17.006,  inside_VERTICAL_WS_18.001, inside_VERTICAL_WS_18.002, inside_VERTICAL_WS_18.003, inside_VERTICAL_WS_18.004, inside_VERTICAL_WS_18.005, inside_VERTICAL_WS_18.006, inside_ALBEDO_SWDOWN_17.001, inside_ALBEDO_SWDOWN_17.002, inside_ALBEDO_SWDOWN_17.003, inside_ALBEDO_SWDOWN_17.004, inside_ALBEDO_SWDOWN_17.005, inside_ALBEDO_SWDOWN_17.006, inside_ALBEDO_SWDOWN_18.001, inside_ALBEDO_SWDOWN_18.002, inside_ALBEDO_SWDOWN_18.003, inside_ALBEDO_SWDOWN_18.004, inside_ALBEDO_SWDOWN_18.005, inside_ALBEDO_SWDOWN_18.006, inside_17.001, inside_17.002, inside_17.003, inside_17.004, inside_17.005, inside_17.006, inside_18.001, inside_18.002, inside_18.003, inside_18.004, inside_18.005, inside_18.006)
+
+## MAKING THETA BUCKETS INSIDE##
+calculate_polar <- function(lat, lon) {
+  r <- distHaversine(c(-81.21869, 37.57799), c(lon, lat))
+  theta <- atan2(lat - 37.57799, lon - -81.21869)
+  return(c(r, theta))}
+inside <- inside %>% rowwise() %>%
+  mutate(polar = list(calculate_polar(Latitude, Longitude)),
+         r_km = (polar[1]/1000),
+         theta = polar[2]) %>%
+  select(-polar) %>% ungroup()
+inside <- inside %>% mutate(theta_bucket = case_when(theta >= 0 & theta < pi/4 ~ "bucket1",
+                                                           theta >= pi/4 & theta < pi/2 ~ "bucket2",
+                                                           theta >= pi/2 & theta < 3*pi/4 ~ "bucket3",
+                                                           theta >= 3*pi/4 & theta <= pi ~ "bucket4",
+                                                           theta < -3*pi/4 & theta >= -pi ~ "bucket5",
+                                                           theta < -pi/2 & theta >= -3*pi/4 ~ "bucket6",
+                                                           theta < -pi/4 & theta >= -pi/2 ~ "bucket7",
+                                                           theta < 0 & theta >= -pi/4 ~ "bucket8"))
+
+## ADDING IN SOIL TYPE & ELEVATION##
+nc_whatever <- nc_open("./data/netCDF_files/wrfout_2017_control_domain.nc")
+lat <- ncvar_get(nc_whatever, "XLAT")
+lon <- ncvar_get(nc_whatever, "XLONG")
+elevation <- matrix(0, nrow = dim(lat)[1], ncol = dim(lat)[2])
+for (i in 1:100) {
+  for (j in 1:100) {
+    elevation[i, j] <- ncvar_get(nc_whatever, "HGT", start = c(i, j, 1), count = c(1, 1, 1))
+  }
+}
+soil_type <- matrix(0, nrow = dim(lat)[1], ncol = dim(lat)[2])
+for (i in 1:100) {
+  for (j in 1:100) {
+    soil_type[i, j] <- ncvar_get(nc_whatever, "ISLTYP", start = c(i, j, 1), count = c(1, 1, 1))
+  }
+}
+full_table <- data.frame(
+  Longitude = as.vector(lon),
+  Latitude = as.vector(lat),
+  ELEVATION = as.vector(elevation),
+  SOIL.TYPE = as.vector(soil_type))
+nc_close(nc_whatever)
+rm(lat, lon, elevation, soil_type)
+full_table <- full_table %>%
+  mutate(SOIL.TYPE = ifelse(SOIL.TYPE %in% c(2,8,11,14,16), 1, SOIL.TYPE)) %>% 
+  mutate(SOIL.TYPE = recode(SOIL.TYPE, '1' = "Other", '3' = "Sandy Loam", '4' = "Silt Loam", '6' = "Loam"))
+prop.table(table(full_table$SOIL.TYPE))
+
+full_table2 <- full_table %>% mutate(Latitude = round(Latitude, 4), Longitude = round(Longitude, 4))
+
+inside <- inside %>% mutate(Latitude = round(Latitude, 4), Longitude = round(Longitude, 4))
+
+inside <- full_join(inside, full_table2, by = c("Latitude", "Longitude"))
+inside <- inside %>% filter(!is.na(Mean_CTRL_ET))
+
+## CREATING NORM() REGRESSIONS
+inside <- inside %>% mutate(normalized_ctrl_SW = Mean_CTRL_SWDOWN / mean(Mean_CTRL_SWDOWN, na.rm = TRUE) - 1,
+                            normalized_ctrl_GT = Mean_CTRL_GT / mean(Mean_CTRL_GT, na.rm = TRUE) - 1,
+                            normalized_ctrl_VPD = Mean_CTRL_VPD / mean(Mean_CTRL_VPD, na.rm = TRUE) - 1,
+                            normalized_ctrl_SM = Mean_CTRL_SMOIS / mean(Mean_CTRL_SMOIS, na.rm = TRUE) - 1,
+                            normalized_ctrl_ET = Mean_CTRL_ET / mean(Mean_CTRL_ET, na.rm = TRUE) - 1,
+                            normalized_ctrl_PRCP = Mean_CTRL_RAINNC / mean(Mean_CTRL_RAINNC, na.rm = TRUE) - 1,
+                            normalized_ctrl_W = Mean_CTRL_W / mean(Mean_CTRL_W, na.rm = TRUE) - 1)
+```
+
+
+## CONSTRUCTING OUTSIDE DATA FRAME
+
+```{r}
+outside_luc1.17 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.001_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 1)
+outside_luc2.17 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.002_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 2)
+outside_luc3.17 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.003_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 3)
+outside_luc4.17 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.004_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 4)
+outside_luc5.17 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.005_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 5)
+outside_luc6.17 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.006_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 6)
+outside_luc1.18 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.001_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 1)
+outside_luc2.18 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.002_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 2)
+outside_luc3.18 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.003_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 3)
+outside_luc4.18 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.004_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 4)
+outside_luc5.18 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.005_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 5)
+outside_luc6.18 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.006_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 6)
+outside <- bind_rows(outside_luc1.17, outside_luc2.17, outside_luc3.17, outside_luc4.17, outside_luc5.17, outside_luc6.17,
+                    outside_luc1.18, outside_luc2.18, outside_luc3.18, outside_luc4.18, outside_luc5.18, outside_luc6.18)
+
+outside_ALBEDO_SWDOWN_18.001 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.001_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 1) %>% select(-X)
+outside_ALBEDO_SWDOWN_18.002 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.002_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 2) %>% select(-X)
+outside_ALBEDO_SWDOWN_18.003 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.003_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 3) %>% select(-X)
+outside_ALBEDO_SWDOWN_18.004 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.004_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 4) %>% select(-X)
+outside_ALBEDO_SWDOWN_18.005 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.005_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 5) %>% select(-X)
+outside_ALBEDO_SWDOWN_18.006 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.006_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 6) %>% select(-X)
+
+outside_ALBEDO_SWDOWN_17.001 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.001_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 1) %>% select(-X)
+outside_ALBEDO_SWDOWN_17.002 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.002_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 2) %>% select(-X)
+outside_ALBEDO_SWDOWN_17.003 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.003_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 3) %>% select(-X)
+outside_ALBEDO_SWDOWN_17.004 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.004_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 4) %>% select(-X)
+outside_ALBEDO_SWDOWN_17.005 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.005_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 5) %>% select(-X)
+outside_ALBEDO_SWDOWN_17.006 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.006_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 6) %>% select(-X)
+outside_ALBEDO_SWDOWN <- bind_rows(outside_ALBEDO_SWDOWN_18.001, outside_ALBEDO_SWDOWN_18.002, outside_ALBEDO_SWDOWN_18.003, outside_ALBEDO_SWDOWN_18.004, outside_ALBEDO_SWDOWN_18.005, outside_ALBEDO_SWDOWN_18.006, outside_ALBEDO_SWDOWN_17.001, outside_ALBEDO_SWDOWN_17.002, outside_ALBEDO_SWDOWN_17.003, outside_ALBEDO_SWDOWN_17.004, outside_ALBEDO_SWDOWN_17.005, outside_ALBEDO_SWDOWN_17.006)
+
+
+outside_VERTICAL_WS_18.001 <- read.csv("./data/csvs/July2025/July2025_18.001_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 1) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+outside_VERTICAL_WS_18.002 <- read.csv("./data/csvs/July2025/July2025_18.002_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 2) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+outside_VERTICAL_WS_18.003 <- read.csv("./data/csvs/July2025/July2025_18.003_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 3) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+outside_VERTICAL_WS_18.004 <- read.csv("./data/csvs/July2025/July2025_18.004_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 4) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+outside_VERTICAL_WS_18.005 <- read.csv("./data/csvs/July2025/July2025_18.005_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 5) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+outside_VERTICAL_WS_18.006 <- read.csv("./data/csvs/July2025/July2025_18.006_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 6) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+
+outside_VERTICAL_WS_17.001 <- read.csv("./data/csvs/July2025/July2025_17.001_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 1) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+outside_VERTICAL_WS_17.002 <- read.csv("./data/csvs/July2025/July2025_17.002_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 2) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+outside_VERTICAL_WS_17.003 <- read.csv("./data/csvs/July2025/July2025_17.003_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 3) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+outside_VERTICAL_WS_17.004 <- read.csv("./data/csvs/July2025/July2025_17.004_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 4) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+outside_VERTICAL_WS_17.005 <- read.csv("./data/csvs/July2025/July2025_17.005_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 5) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+outside_VERTICAL_WS_17.006 <- read.csv("./data/csvs/July2025/July2025_17.006_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 6) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
+outside_VERTICAL_WS <- bind_rows(outside_VERTICAL_WS_18.001, outside_VERTICAL_WS_18.002, outside_VERTICAL_WS_18.003, outside_VERTICAL_WS_18.004, outside_VERTICAL_WS_18.005, outside_VERTICAL_WS_18.006, outside_VERTICAL_WS_17.001, outside_VERTICAL_WS_17.002, outside_VERTICAL_WS_17.003, outside_VERTICAL_WS_17.004, outside_VERTICAL_WS_17.005, outside_VERTICAL_WS_17.006)
+
+
+outside <- full_join(outside, outside_ALBEDO_SWDOWN, by = c("Latitude", "Longitude", "treatment", "year", "tLU_INDEX", "cLU_INDEX"))
+outside <- full_join(outside, outside_VERTICAL_WS, by = c("Latitude", "Longitude", "treatment", "year", "tLU_INDEX", "cLU_INDEX"))
+
+
+rm(outside_luc1.17, outside_luc2.17, outside_luc3.17, outside_luc4.17, outside_luc5.17, outside_luc6.17, outside_luc1.18, outside_luc2.18, outside_luc3.18, outside_luc4.18, outside_luc5.18, outside_luc6.18, outside_ALBEDO_SWDOWN_18.001, outside_ALBEDO_SWDOWN_18.002, outside_ALBEDO_SWDOWN_18.003, outside_ALBEDO_SWDOWN_18.004, outside_ALBEDO_SWDOWN_18.005, outside_ALBEDO_SWDOWN_18.006, outside_ALBEDO_SWDOWN_17.001, outside_ALBEDO_SWDOWN_17.002, outside_ALBEDO_SWDOWN_17.003, outside_ALBEDO_SWDOWN_17.004, outside_ALBEDO_SWDOWN_17.005, outside_ALBEDO_SWDOWN_17.006, outside_VERTICAL_WS_18.001, outside_VERTICAL_WS_18.002, outside_VERTICAL_WS_18.003, outside_VERTICAL_WS_18.004, outside_VERTICAL_WS_18.005, outside_VERTICAL_WS_18.006, outside_VERTICAL_WS_17.001, outside_VERTICAL_WS_17.002, outside_VERTICAL_WS_17.003, outside_VERTICAL_WS_17.004, outside_VERTICAL_WS_17.005, outside_VERTICAL_WS_17.006)
+
+## MASKING OUT INTERSTITIAL PIXELS IN SCENARIOS 3 AND 4 ##
+
+mask003 <- data.frame(long = c(-80.13846, -80.17999, -81.60565, -82.27844, -82.25146, -80.82397, -80.13846),
+                      lat = c(38.33989, 37.80225, 36.78333, 36.80656, 37.34526, 38.37086, 38.33989))
+mask004 <- data.frame(long = c(-80.13846, -80.18411, -81.46793, -82.2084, -82.17819, -80.89255, -80.13846),
+                      lat = c(38.33989, 37.74847, 36.83211, 36.85827, 37.4508, 38.37374, 38.33989))
+mask003_sf <- st_polygon(list(as.matrix(mask003))) %>% st_sfc(crs = 4326)
+mask004_sf <- st_polygon(list(as.matrix(mask004))) %>% st_sfc(crs = 4326)
+outside_sf <- st_as_sf(outside, coords = c("Longitude", "Latitude"), crs = 4326)
+inside_003 <- st_within(outside_sf, mask003_sf, sparse = FALSE)[,1]
+inside_004 <- st_within(outside_sf, mask004_sf, sparse = FALSE)[,1]
+
+keep_point <- case_when(outside_sf$treatment == 3 ~ !inside_003, outside_sf$treatment == 4 ~ !inside_004, TRUE ~ TRUE)
+outside_sf <- outside_sf %>% ungroup()
+outside_filtered <- outside_sf[keep_point, ] %>% mutate(Longitude = st_coordinates(.)[,1], Latitude = st_coordinates(.)[,2]) %>% st_drop_geometry() %>% filter(delta_VT_t00X <= 1, delta_VT_t00X >= -1)
+
+rm(mask003, mask003_sf, mask004, mask004_sf, outside_sf)
+
+## MAKING DISTANCE TO DEFORESTATION COLUMN ##
+lu_coords <- sprintf("./data/csvs/lat_lons/17_%03d_lat_lon.csv", 1:6)
+acsvs_17 <- lapply(lu_coords, read.csv)
+csv1 <- acsvs_17[[1]] %>% mutate(t00X_index = row_number(), treatment = 1)
+csv2 <- acsvs_17[[2]] %>% mutate(t00X_index = row_number(), treatment = 2)
+csv3 <- acsvs_17[[3]] %>% mutate(t00X_index = row_number(), treatment = 3)
+csv4 <- acsvs_17[[4]] %>% mutate(t00X_index = row_number(), treatment = 4)
+csv5 <- acsvs_17[[5]] %>% mutate(t00X_index = row_number(), treatment = 5)
+csv6 <- acsvs_17[[6]] %>% mutate(t00X_index = row_number(), treatment = 6)
+lu_16_t001 <- csv1 %>% filter(LU_INDEX == 16) %>% filter(!(t00X_index == 2390)) %>% select(Longitude, Latitude)
+lu_16_t002 <- csv2 %>% filter(LU_INDEX == 16) %>% filter(!(t00X_index == 2381)) %>% select(Longitude, Latitude)
+lu_16_t003 <- csv3 %>% filter(LU_INDEX == 16) %>% filter(!(t00X_index == 2379)) %>% select(Longitude, Latitude)
+lu_16_t004 <- csv4 %>% filter(LU_INDEX == 16) %>% filter(!(t00X_index == 2381)) %>% select(Longitude, Latitude)
+lu_16_t005 <- csv5 %>% filter(LU_INDEX == 16) %>% select(Longitude, Latitude)
+lu_16_t006 <- csv6 %>% filter(LU_INDEX == 16) %>% filter(!(t00X_index == 2389)) %>% select(Longitude, Latitude)
+csv1$distance_to_LU16_meters <- apply(csv1[, c("Longitude", "Latitude")], 1, function(coord) {
+  min(distHaversine(coord, lu_16_t001))})
+csv2$distance_to_LU16_meters <- apply(csv2[, c("Longitude", "Latitude")], 1, function(coord) {
+  min(distHaversine(coord, lu_16_t002))})
+csv3$distance_to_LU16_meters <- apply(csv3[, c("Longitude", "Latitude")], 1, function(coord) {
+  min(distHaversine(coord, lu_16_t003))})
+csv4$distance_to_LU16_meters <- apply(csv4[, c("Longitude", "Latitude")], 1, function(coord) {
+  min(distHaversine(coord, lu_16_t004))})
+csv5$distance_to_LU16_meters <- apply(csv5[, c("Longitude", "Latitude")], 1, function(coord) {
+  min(distHaversine(coord, lu_16_t005))})
+csv6$distance_to_LU16_meters <- apply(csv6[, c("Longitude", "Latitude")], 1, function(coord) {
+  min(distHaversine(coord, lu_16_t006))})
+distance_csvs <- bind_rows(csv1, csv2, csv3, csv4, csv5, csv6)
+distance_csvs <- distance_csvs %>% filter(LU_INDEX == 4) %>% select(-LU_INDEX, -t00X_index)
+outside_filtered <- full_join(outside_filtered, distance_csvs, by = c("Latitude", "Longitude", "treatment"))
+outside_filtered <- outside_filtered %>% filter(!is.na(X)) %>% mutate(distance_to_LU16_km = distance_to_LU16_meters / 1000)
+rm(acsvs_17, csv1, csv2, csv3, csv4, csv5, csv6, lu_16_t001, lu_16_t002, lu_16_t003, lu_16_t004, lu_16_t005, lu_16_t006, distance_csvs)
+
+## MAKING THETA BUCKETS ##
+calculate_polar <- function(lat, lon) {
+  r <- distHaversine(c(-81.21869, 37.57799), c(lon, lat))
+  theta <- atan2(lat - 37.57799, lon - -81.21869)
+  return(c(r, theta))}
+outside_filtered <- outside_filtered %>% rowwise() %>%
+  mutate(polar = list(calculate_polar(Latitude, Longitude)),
+         r = polar[1],
+         theta = polar[2]) %>%
+  select(-polar) %>% ungroup()
+outside_filtered <- outside_filtered %>% mutate(theta_bucket = case_when(theta >= 0 & theta < pi/4 ~ "bucket1",
+                                                           theta >= pi/4 & theta < pi/2 ~ "bucket2",
+                                                           theta >= pi/2 & theta < 3*pi/4 ~ "bucket3",
+                                                           theta >= 3*pi/4 & theta <= pi ~ "bucket4",
+                                                           theta < -3*pi/4 & theta >= -pi ~ "bucket5",
+                                                           theta < -pi/2 & theta >= -3*pi/4 ~ "bucket6",
+                                                           theta < -pi/4 & theta >= -pi/2 ~ "bucket7",
+                                                           theta < 0 & theta >= -pi/4 ~ "bucket8"))
+
+## CREATING NORM() REGRESSIONS
+outside_filtered <- outside_filtered %>% mutate(normalized_ctrl_GPP = Mean_CTRL_PSN / mean(Mean_CTRL_PSN, na.rm = TRUE) - 1,
+                                                normalized_ctrl_APAR = Mean_CTRL_APAR / mean(Mean_CTRL_APAR, na.rm = TRUE) - 1,
+                                                normalized_ctrl_SM = Mean_CTRL_SMOIS / mean(Mean_CTRL_SMOIS) - 1,
+                                                normalized_ctrl_VPD = Mean_CTRL_VPD / mean(Mean_CTRL_VPD, na.rm = TRUE) - 1,
+                                                normalized_ctrl_VT = Mean_CTRL_VT / mean(Mean_CTRL_VT, na.rm = TRUE) - 1)
+```
+
+
+## Import CSVs with complete CTRL data
 
 ```{r import_data}
 ## FULL CTRL DATA ##
@@ -76,6 +331,8 @@ standardized_theme <- theme(legend.text = element_text(size = 10), legend.title 
 
 ctrl_17 <- read.csv("./data/csvs/all_points/December2025_17.001_all_points.csv") %>% filter(Mean_CTRL_PSN > 2)
 ctrl_18 <- read.csv("./data/csvs/all_points/December2025_18.001_all_points.csv") %>% filter(Mean_CTRL_PSN > 2)
+
+
 
 ```
 
@@ -523,266 +780,6 @@ ctrl_plot <- ctrls +
 ```
 
 
-## MAKING INSIDE DEFORESTATION DATA FRAME:
-
-```{r}
-inside_18.001 <- read.csv("./data/csvs/deforested/December2025_18.001_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 1) %>% select(-X)
-inside_18.002 <- read.csv("./data/csvs/deforested/December2025_18.002_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 2) %>% select(-X)
-inside_18.003 <- read.csv("./data/csvs/deforested/December2025_18.003_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 3) %>% select(-X)
-inside_18.004 <- read.csv("./data/csvs/deforested/December2025_18.004_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 4) %>% select(-X)
-inside_18.005 <- read.csv("./data/csvs/deforested/December2025_18.005_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 5) %>% select(-X)
-inside_18.006 <- read.csv("./data/csvs/deforested/December2025_18.006_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 6) %>% select(-X)
-
-inside_17.001 <- read.csv("./data/csvs/deforested/December2025_17.001_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 1) %>% select(-X)
-inside_17.002 <- read.csv("./data/csvs/deforested/December2025_17.002_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 2) %>% select(-X)
-inside_17.003 <- read.csv("./data/csvs/deforested/December2025_17.003_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 3) %>% select(-X)
-inside_17.004 <- read.csv("./data/csvs/deforested/December2025_17.004_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 4) %>% select(-X)
-inside_17.005 <- read.csv("./data/csvs/deforested/December2025_17.005_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 5) %>% select(-X)
-inside_17.006 <- read.csv("./data/csvs/deforested/December2025_17.006_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 6) %>% select(-X)
-inside <- bind_rows(inside_18.001, inside_18.002, inside_18.003, inside_18.004, inside_18.005, inside_18.006, inside_17.001, inside_17.002, inside_17.003, inside_17.004, inside_17.005, inside_17.006)
-
-inside_ALBEDO_SWDOWN_18.001 <- read.csv("./data/csvs/deforested/December2025_18.001_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 1) %>% select(-X)
-inside_ALBEDO_SWDOWN_18.002 <- read.csv("./data/csvs/deforested/December2025_18.002_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 2) %>% select(-X)
-inside_ALBEDO_SWDOWN_18.003 <- read.csv("./data/csvs/deforested/December2025_18.003_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 3) %>% select(-X)
-inside_ALBEDO_SWDOWN_18.004 <- read.csv("./data/csvs/deforested/December2025_18.004_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 4) %>% select(-X)
-inside_ALBEDO_SWDOWN_18.005 <- read.csv("./data/csvs/deforested/December2025_18.005_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 5) %>% select(-X)
-inside_ALBEDO_SWDOWN_18.006 <- read.csv("./data/csvs/deforested/December2025_18.006_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 6) %>% select(-X)
-
-inside_ALBEDO_SWDOWN_17.001 <- read.csv("./data/csvs/deforested/December2025_17.001_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 1) %>% select(-X)
-inside_ALBEDO_SWDOWN_17.002 <- read.csv("./data/csvs/deforested/December2025_17.002_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 2) %>% select(-X)
-inside_ALBEDO_SWDOWN_17.003 <- read.csv("./data/csvs/deforested/December2025_17.003_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 3) %>% select(-X)
-inside_ALBEDO_SWDOWN_17.004 <- read.csv("./data/csvs/deforested/December2025_17.004_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 4) %>% select(-X)
-inside_ALBEDO_SWDOWN_17.005 <- read.csv("./data/csvs/deforested/December2025_17.005_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 5) %>% select(-X)
-inside_ALBEDO_SWDOWN_17.006 <- read.csv("./data/csvs/deforested/December2025_17.006_ALBEDO_SWDOWN_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 6) %>% select(-X)
-inside_ALBEDO_SWDOWN <- bind_rows(inside_ALBEDO_SWDOWN_18.001, inside_ALBEDO_SWDOWN_18.002, inside_ALBEDO_SWDOWN_18.003, inside_ALBEDO_SWDOWN_18.004, inside_ALBEDO_SWDOWN_18.005, inside_ALBEDO_SWDOWN_18.006, inside_ALBEDO_SWDOWN_17.001, inside_ALBEDO_SWDOWN_17.002, inside_ALBEDO_SWDOWN_17.003, inside_ALBEDO_SWDOWN_17.004, inside_ALBEDO_SWDOWN_17.005, inside_ALBEDO_SWDOWN_17.006)
-
-
-inside_VERTICAL_WS_18.001 <- read.csv("./data/csvs/July2025/July2025_18.001_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 1) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-inside_VERTICAL_WS_18.002 <- read.csv("./data/csvs/July2025/July2025_18.002_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 2) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-inside_VERTICAL_WS_18.003 <- read.csv("./data/csvs/July2025/July2025_18.003_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 3) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-inside_VERTICAL_WS_18.004 <- read.csv("./data/csvs/July2025/July2025_18.004_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 4) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-inside_VERTICAL_WS_18.005 <- read.csv("./data/csvs/July2025/July2025_18.005_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 5) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-inside_VERTICAL_WS_18.006 <- read.csv("./data/csvs/July2025/July2025_18.006_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 6) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-
-inside_VERTICAL_WS_17.001 <- read.csv("./data/csvs/July2025/July2025_17.001_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 1) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-inside_VERTICAL_WS_17.002 <- read.csv("./data/csvs/July2025/July2025_17.002_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 2) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-inside_VERTICAL_WS_17.003 <- read.csv("./data/csvs/July2025/July2025_17.003_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 3) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-inside_VERTICAL_WS_17.004 <- read.csv("./data/csvs/July2025/July2025_17.004_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 4) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-inside_VERTICAL_WS_17.005 <- read.csv("./data/csvs/July2025/July2025_17.005_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 5) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-inside_VERTICAL_WS_17.006 <- read.csv("./data/csvs/July2025/July2025_17.006_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 6) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-inside_VERTICAL_WS <- bind_rows(inside_VERTICAL_WS_18.001, inside_VERTICAL_WS_18.002, inside_VERTICAL_WS_18.003, inside_VERTICAL_WS_18.004, inside_VERTICAL_WS_18.005, inside_VERTICAL_WS_18.006, inside_VERTICAL_WS_17.001, inside_VERTICAL_WS_17.002, inside_VERTICAL_WS_17.003, inside_VERTICAL_WS_17.004, inside_VERTICAL_WS_17.005, inside_VERTICAL_WS_17.006)
-
-
-inside <- full_join(inside, inside_ALBEDO_SWDOWN, by = c("Latitude", "Longitude", "treatment", "year", "tLU_INDEX", "cLU_INDEX"))
-inside <- full_join(inside, inside_VERTICAL_WS, by = c("Latitude", "Longitude", "treatment", "year", "tLU_INDEX", "cLU_INDEX"))
-
-rm(inside_ALBEDO_SWDOWN, inside_VERTICAL_WS, inside_VERTICAL_WS_17.001, inside_VERTICAL_WS_17.002, inside_VERTICAL_WS_17.003, inside_VERTICAL_WS_17.004, inside_VERTICAL_WS_17.005, inside_VERTICAL_WS_17.006,  inside_VERTICAL_WS_18.001, inside_VERTICAL_WS_18.002, inside_VERTICAL_WS_18.003, inside_VERTICAL_WS_18.004, inside_VERTICAL_WS_18.005, inside_VERTICAL_WS_18.006, inside_ALBEDO_SWDOWN_17.001, inside_ALBEDO_SWDOWN_17.002, inside_ALBEDO_SWDOWN_17.003, inside_ALBEDO_SWDOWN_17.004, inside_ALBEDO_SWDOWN_17.005, inside_ALBEDO_SWDOWN_17.006, inside_ALBEDO_SWDOWN_18.001, inside_ALBEDO_SWDOWN_18.002, inside_ALBEDO_SWDOWN_18.003, inside_ALBEDO_SWDOWN_18.004, inside_ALBEDO_SWDOWN_18.005, inside_ALBEDO_SWDOWN_18.006, inside_17.001, inside_17.002, inside_17.003, inside_17.004, inside_17.005, inside_17.006, inside_18.001, inside_18.002, inside_18.003, inside_18.004, inside_18.005, inside_18.006)
-
-## MAKING THETA BUCKETS INSIDE##
-calculate_polar <- function(lat, lon) {
-  r <- distHaversine(c(-81.21869, 37.57799), c(lon, lat))
-  theta <- atan2(lat - 37.57799, lon - -81.21869)
-  return(c(r, theta))}
-inside <- inside %>% rowwise() %>%
-  mutate(polar = list(calculate_polar(Latitude, Longitude)),
-         r_km = (polar[1]/1000),
-         theta = polar[2]) %>%
-  select(-polar) %>% ungroup()
-inside <- inside %>% mutate(theta_bucket = case_when(theta >= 0 & theta < pi/4 ~ "bucket1",
-                                                           theta >= pi/4 & theta < pi/2 ~ "bucket2",
-                                                           theta >= pi/2 & theta < 3*pi/4 ~ "bucket3",
-                                                           theta >= 3*pi/4 & theta <= pi ~ "bucket4",
-                                                           theta < -3*pi/4 & theta >= -pi ~ "bucket5",
-                                                           theta < -pi/2 & theta >= -3*pi/4 ~ "bucket6",
-                                                           theta < -pi/4 & theta >= -pi/2 ~ "bucket7",
-                                                           theta < 0 & theta >= -pi/4 ~ "bucket8"))
-
-## ADDING IN SOIL TYPE & ELEVATION##
-nc_whatever <- nc_open("./data/netCDF_files/wrfout_2017_control_domain.nc")
-lat <- ncvar_get(nc_whatever, "XLAT")
-lon <- ncvar_get(nc_whatever, "XLONG")
-elevation <- matrix(0, nrow = dim(lat)[1], ncol = dim(lat)[2])
-for (i in 1:100) {
-  for (j in 1:100) {
-    elevation[i, j] <- ncvar_get(nc_whatever, "HGT", start = c(i, j, 1), count = c(1, 1, 1))
-  }
-}
-soil_type <- matrix(0, nrow = dim(lat)[1], ncol = dim(lat)[2])
-for (i in 1:100) {
-  for (j in 1:100) {
-    soil_type[i, j] <- ncvar_get(nc_whatever, "ISLTYP", start = c(i, j, 1), count = c(1, 1, 1))
-  }
-}
-full_table <- data.frame(
-  Longitude = as.vector(lon),
-  Latitude = as.vector(lat),
-  ELEVATION = as.vector(elevation),
-  SOIL.TYPE = as.vector(soil_type))
-nc_close(nc_whatever)
-rm(lat, lon, elevation, soil_type)
-full_table <- full_table %>%
-  mutate(SOIL.TYPE = ifelse(SOIL.TYPE %in% c(2,8,11,14,16), 1, SOIL.TYPE)) %>% 
-  mutate(SOIL.TYPE = recode(SOIL.TYPE, '1' = "Other", '3' = "Sandy Loam", '4' = "Silt Loam", '6' = "Loam"))
-prop.table(table(full_table$SOIL.TYPE))
-
-full_table2 <- full_table %>% mutate(Latitude = round(Latitude, 4), Longitude = round(Longitude, 4))
-
-inside <- inside %>% mutate(Latitude = round(Latitude, 4), Longitude = round(Longitude, 4))
-
-inside <- full_join(inside, full_table2, by = c("Latitude", "Longitude"))
-inside <- inside %>% filter(!is.na(Mean_CTRL_ET))
-
-## CREATING NORM() REGRESSIONS
-inside <- inside %>% mutate(normalized_ctrl_SW = Mean_CTRL_SWDOWN / mean(Mean_CTRL_SWDOWN, na.rm = TRUE) - 1,
-                            normalized_ctrl_GT = Mean_CTRL_GT / mean(Mean_CTRL_GT, na.rm = TRUE) - 1,
-                            normalized_ctrl_VPD = Mean_CTRL_VPD / mean(Mean_CTRL_VPD, na.rm = TRUE) - 1,
-                            normalized_ctrl_SM = Mean_CTRL_SMOIS / mean(Mean_CTRL_SMOIS, na.rm = TRUE) - 1,
-                            normalized_ctrl_ET = Mean_CTRL_ET / mean(Mean_CTRL_ET, na.rm = TRUE) - 1,
-                            normalized_ctrl_PRCP = Mean_CTRL_RAINNC / mean(Mean_CTRL_RAINNC, na.rm = TRUE) - 1,
-                            normalized_ctrl_W = Mean_CTRL_W / mean(Mean_CTRL_W, na.rm = TRUE) - 1)
-```
-
-
-## CONSTRUCTING OUTSIDE DATA FRAME
-
-```{r}
-outside_luc1.17 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.001_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 1)
-outside_luc2.17 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.002_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 2)
-outside_luc3.17 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.003_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 3)
-outside_luc4.17 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.004_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 4)
-outside_luc5.17 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.005_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 5)
-outside_luc6.17 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.006_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 6)
-outside_luc1.18 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.001_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 1)
-outside_luc2.18 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.002_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 2)
-outside_luc3.18 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.003_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 3)
-outside_luc4.18 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.004_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 4)
-outside_luc5.18 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.005_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 5)
-outside_luc6.18 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.006_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 6)
-outside <- bind_rows(outside_luc1.17, outside_luc2.17, outside_luc3.17, outside_luc4.17, outside_luc5.17, outside_luc6.17,
-                    outside_luc1.18, outside_luc2.18, outside_luc3.18, outside_luc4.18, outside_luc5.18, outside_luc6.18)
-
-outside_ALBEDO_SWDOWN_18.001 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.001_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 1) %>% select(-X)
-outside_ALBEDO_SWDOWN_18.002 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.002_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 2) %>% select(-X)
-outside_ALBEDO_SWDOWN_18.003 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.003_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 3) %>% select(-X)
-outside_ALBEDO_SWDOWN_18.004 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.004_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 4) %>% select(-X)
-outside_ALBEDO_SWDOWN_18.005 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.005_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 5) %>% select(-X)
-outside_ALBEDO_SWDOWN_18.006 <- read.csv("./data/csvs/remaining_deciduous/December2025_18.006_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 6) %>% select(-X)
-
-outside_ALBEDO_SWDOWN_17.001 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.001_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 1) %>% select(-X)
-outside_ALBEDO_SWDOWN_17.002 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.002_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 2) %>% select(-X)
-outside_ALBEDO_SWDOWN_17.003 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.003_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 3) %>% select(-X)
-outside_ALBEDO_SWDOWN_17.004 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.004_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 4) %>% select(-X)
-outside_ALBEDO_SWDOWN_17.005 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.005_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 5) %>% select(-X)
-outside_ALBEDO_SWDOWN_17.006 <- read.csv("./data/csvs/remaining_deciduous/December2025_17.006_ALBEDO_SWDOWN_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 6) %>% select(-X)
-outside_ALBEDO_SWDOWN <- bind_rows(outside_ALBEDO_SWDOWN_18.001, outside_ALBEDO_SWDOWN_18.002, outside_ALBEDO_SWDOWN_18.003, outside_ALBEDO_SWDOWN_18.004, outside_ALBEDO_SWDOWN_18.005, outside_ALBEDO_SWDOWN_18.006, outside_ALBEDO_SWDOWN_17.001, outside_ALBEDO_SWDOWN_17.002, outside_ALBEDO_SWDOWN_17.003, outside_ALBEDO_SWDOWN_17.004, outside_ALBEDO_SWDOWN_17.005, outside_ALBEDO_SWDOWN_17.006)
-
-
-outside_VERTICAL_WS_18.001 <- read.csv("./data/csvs/July2025/July2025_18.001_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 1) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-outside_VERTICAL_WS_18.002 <- read.csv("./data/csvs/July2025/July2025_18.002_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 2) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-outside_VERTICAL_WS_18.003 <- read.csv("./data/csvs/July2025/July2025_18.003_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 3) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-outside_VERTICAL_WS_18.004 <- read.csv("./data/csvs/July2025/July2025_18.004_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 4) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-outside_VERTICAL_WS_18.005 <- read.csv("./data/csvs/July2025/July2025_18.005_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 5) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-outside_VERTICAL_WS_18.006 <- read.csv("./data/csvs/July2025/July2025_18.006_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 6) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-
-outside_VERTICAL_WS_17.001 <- read.csv("./data/csvs/July2025/July2025_17.001_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 1) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-outside_VERTICAL_WS_17.002 <- read.csv("./data/csvs/July2025/July2025_17.002_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 2) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-outside_VERTICAL_WS_17.003 <- read.csv("./data/csvs/July2025/July2025_17.003_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 3) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-outside_VERTICAL_WS_17.004 <- read.csv("./data/csvs/July2025/July2025_17.004_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 4) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-outside_VERTICAL_WS_17.005 <- read.csv("./data/csvs/July2025/July2025_17.005_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 5) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-outside_VERTICAL_WS_17.006 <- read.csv("./data/csvs/July2025/July2025_17.006_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 6) %>% select(Latitude, Longitude, treatment, year, tLU_INDEX, cLU_INDEX, Mean_CTRL_W, Mean_t00X_W, delta_W_t00X)
-outside_VERTICAL_WS <- bind_rows(outside_VERTICAL_WS_18.001, outside_VERTICAL_WS_18.002, outside_VERTICAL_WS_18.003, outside_VERTICAL_WS_18.004, outside_VERTICAL_WS_18.005, outside_VERTICAL_WS_18.006, outside_VERTICAL_WS_17.001, outside_VERTICAL_WS_17.002, outside_VERTICAL_WS_17.003, outside_VERTICAL_WS_17.004, outside_VERTICAL_WS_17.005, outside_VERTICAL_WS_17.006)
-
-
-outside <- full_join(outside, outside_ALBEDO_SWDOWN, by = c("Latitude", "Longitude", "treatment", "year", "tLU_INDEX", "cLU_INDEX"))
-outside <- full_join(outside, outside_VERTICAL_WS, by = c("Latitude", "Longitude", "treatment", "year", "tLU_INDEX", "cLU_INDEX"))
-
-
-rm(outside_luc1.17, outside_luc2.17, outside_luc3.17, outside_luc4.17, outside_luc5.17, outside_luc6.17, outside_luc1.18, outside_luc2.18, outside_luc3.18, outside_luc4.18, outside_luc5.18, outside_luc6.18, outside_ALBEDO_SWDOWN_18.001, outside_ALBEDO_SWDOWN_18.002, outside_ALBEDO_SWDOWN_18.003, outside_ALBEDO_SWDOWN_18.004, outside_ALBEDO_SWDOWN_18.005, outside_ALBEDO_SWDOWN_18.006, outside_ALBEDO_SWDOWN_17.001, outside_ALBEDO_SWDOWN_17.002, outside_ALBEDO_SWDOWN_17.003, outside_ALBEDO_SWDOWN_17.004, outside_ALBEDO_SWDOWN_17.005, outside_ALBEDO_SWDOWN_17.006, outside_VERTICAL_WS_18.001, outside_VERTICAL_WS_18.002, outside_VERTICAL_WS_18.003, outside_VERTICAL_WS_18.004, outside_VERTICAL_WS_18.005, outside_VERTICAL_WS_18.006, outside_VERTICAL_WS_17.001, outside_VERTICAL_WS_17.002, outside_VERTICAL_WS_17.003, outside_VERTICAL_WS_17.004, outside_VERTICAL_WS_17.005, outside_VERTICAL_WS_17.006)
-
-## MASKING OUT INTERSTITIAL PIXELS IN SCENARIOS 3 AND 4 ##
-
-mask003 <- data.frame(long = c(-80.13846, -80.17999, -81.60565, -82.27844, -82.25146, -80.82397, -80.13846),
-                      lat = c(38.33989, 37.80225, 36.78333, 36.80656, 37.34526, 38.37086, 38.33989))
-mask004 <- data.frame(long = c(-80.13846, -80.18411, -81.46793, -82.2084, -82.17819, -80.89255, -80.13846),
-                      lat = c(38.33989, 37.74847, 36.83211, 36.85827, 37.4508, 38.37374, 38.33989))
-mask003_sf <- st_polygon(list(as.matrix(mask003))) %>% st_sfc(crs = 4326)
-mask004_sf <- st_polygon(list(as.matrix(mask004))) %>% st_sfc(crs = 4326)
-outside_sf <- st_as_sf(outside, coords = c("Longitude", "Latitude"), crs = 4326)
-inside_003 <- st_within(outside_sf, mask003_sf, sparse = FALSE)[,1]
-inside_004 <- st_within(outside_sf, mask004_sf, sparse = FALSE)[,1]
-
-keep_point <- case_when(outside_sf$treatment == 3 ~ !inside_003, outside_sf$treatment == 4 ~ !inside_004, TRUE ~ TRUE)
-outside_sf <- outside_sf %>% ungroup()
-outside_filtered <- outside_sf[keep_point, ] %>% mutate(Longitude = st_coordinates(.)[,1], Latitude = st_coordinates(.)[,2]) %>% st_drop_geometry() %>% filter(delta_VT_t00X <= 1, delta_VT_t00X >= -1)
-
-rm(mask003, mask003_sf, mask004, mask004_sf, outside_sf)
-
-## MAKING DISTANCE TO DEFORESTATION COLUMN ##
-lu_coords <- sprintf("./data/csvs/lat_lons/17_%03d_lat_lon.csv", 1:6)
-acsvs_17 <- lapply(lu_coords, read.csv)
-csv1 <- acsvs_17[[1]] %>% mutate(t00X_index = row_number(), treatment = 1)
-csv2 <- acsvs_17[[2]] %>% mutate(t00X_index = row_number(), treatment = 2)
-csv3 <- acsvs_17[[3]] %>% mutate(t00X_index = row_number(), treatment = 3)
-csv4 <- acsvs_17[[4]] %>% mutate(t00X_index = row_number(), treatment = 4)
-csv5 <- acsvs_17[[5]] %>% mutate(t00X_index = row_number(), treatment = 5)
-csv6 <- acsvs_17[[6]] %>% mutate(t00X_index = row_number(), treatment = 6)
-lu_16_t001 <- csv1 %>% filter(LU_INDEX == 16) %>% filter(!(t00X_index == 2390)) %>% select(Longitude, Latitude)
-lu_16_t002 <- csv2 %>% filter(LU_INDEX == 16) %>% filter(!(t00X_index == 2381)) %>% select(Longitude, Latitude)
-lu_16_t003 <- csv3 %>% filter(LU_INDEX == 16) %>% filter(!(t00X_index == 2379)) %>% select(Longitude, Latitude)
-lu_16_t004 <- csv4 %>% filter(LU_INDEX == 16) %>% filter(!(t00X_index == 2381)) %>% select(Longitude, Latitude)
-lu_16_t005 <- csv5 %>% filter(LU_INDEX == 16) %>% select(Longitude, Latitude)
-lu_16_t006 <- csv6 %>% filter(LU_INDEX == 16) %>% filter(!(t00X_index == 2389)) %>% select(Longitude, Latitude)
-csv1$distance_to_LU16_meters <- apply(csv1[, c("Longitude", "Latitude")], 1, function(coord) {
-  min(distHaversine(coord, lu_16_t001))})
-csv2$distance_to_LU16_meters <- apply(csv2[, c("Longitude", "Latitude")], 1, function(coord) {
-  min(distHaversine(coord, lu_16_t002))})
-csv3$distance_to_LU16_meters <- apply(csv3[, c("Longitude", "Latitude")], 1, function(coord) {
-  min(distHaversine(coord, lu_16_t003))})
-csv4$distance_to_LU16_meters <- apply(csv4[, c("Longitude", "Latitude")], 1, function(coord) {
-  min(distHaversine(coord, lu_16_t004))})
-csv5$distance_to_LU16_meters <- apply(csv5[, c("Longitude", "Latitude")], 1, function(coord) {
-  min(distHaversine(coord, lu_16_t005))})
-csv6$distance_to_LU16_meters <- apply(csv6[, c("Longitude", "Latitude")], 1, function(coord) {
-  min(distHaversine(coord, lu_16_t006))})
-distance_csvs <- bind_rows(csv1, csv2, csv3, csv4, csv5, csv6)
-distance_csvs <- distance_csvs %>% filter(LU_INDEX == 4) %>% select(-LU_INDEX, -t00X_index)
-outside_filtered <- full_join(outside_filtered, distance_csvs, by = c("Latitude", "Longitude", "treatment"))
-outside_filtered <- outside_filtered %>% filter(!is.na(X)) %>% mutate(distance_to_LU16_km = distance_to_LU16_meters / 1000)
-rm(acsvs_17, csv1, csv2, csv3, csv4, csv5, csv6, lu_16_t001, lu_16_t002, lu_16_t003, lu_16_t004, lu_16_t005, lu_16_t006, distance_csvs)
-
-## MAKING THETA BUCKETS ##
-calculate_polar <- function(lat, lon) {
-  r <- distHaversine(c(-81.21869, 37.57799), c(lon, lat))
-  theta <- atan2(lat - 37.57799, lon - -81.21869)
-  return(c(r, theta))}
-outside_filtered <- outside_filtered %>% rowwise() %>%
-  mutate(polar = list(calculate_polar(Latitude, Longitude)),
-         r = polar[1],
-         theta = polar[2]) %>%
-  select(-polar) %>% ungroup()
-outside_filtered <- outside_filtered %>% mutate(theta_bucket = case_when(theta >= 0 & theta < pi/4 ~ "bucket1",
-                                                           theta >= pi/4 & theta < pi/2 ~ "bucket2",
-                                                           theta >= pi/2 & theta < 3*pi/4 ~ "bucket3",
-                                                           theta >= 3*pi/4 & theta <= pi ~ "bucket4",
-                                                           theta < -3*pi/4 & theta >= -pi ~ "bucket5",
-                                                           theta < -pi/2 & theta >= -3*pi/4 ~ "bucket6",
-                                                           theta < -pi/4 & theta >= -pi/2 ~ "bucket7",
-                                                           theta < 0 & theta >= -pi/4 ~ "bucket8"))
-
-## CREATING NORM() REGRESSIONS
-outside_filtered <- outside_filtered %>% mutate(normalized_ctrl_GPP = Mean_CTRL_PSN / mean(Mean_CTRL_PSN, na.rm = TRUE) - 1,
-                                                normalized_ctrl_APAR = Mean_CTRL_APAR / mean(Mean_CTRL_APAR, na.rm = TRUE) - 1,
-                                                normalized_ctrl_SM = Mean_CTRL_SMOIS / mean(Mean_CTRL_SMOIS) - 1,
-                                                normalized_ctrl_VPD = Mean_CTRL_VPD / mean(Mean_CTRL_VPD, na.rm = TRUE) - 1,
-                                                normalized_ctrl_VT = Mean_CTRL_VT / mean(Mean_CTRL_VT, na.rm = TRUE) - 1)
-```
-
-
-
-
-
-
-
 
 
 ######### PLOTS #########
@@ -823,7 +820,6 @@ mask006 <- data.frame(long = c(-82.19644, -81.92181, -80.24530, -80.26138, -80.5
                       lat = c(38.42185, 38.41282, 36.94141, 36.72611, 36.73870, 38.20664, 38.42185),
                       treatment = 6)
 masks <- bind_rows(mask001, mask002, mask003, mask004, mask005, mask006)
-
 
 X.VPD <- ggplot() +
   geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_VPD_t00X), shape = 15, size = 0.33) +
@@ -893,6 +889,12 @@ full_6789 <- ggarrange(X.APAR, X.VT, X.VPD, X.SM, ncol = 1)
 
 #ggsave("~/Desktop/full_corrected.pdf", full_6789, width = 14.5, height = 19, units = "in")
 
+average_precip_deciduous_CTRL_17 <- mean(ctrl_17$Mean_CTRL_RAINNC) * 234
+average_precip_deciduous_CTRL_18 <- mean(ctrl_18$Mean_CTRL_RAINNC) * 234
+
+average_precip_deciduous_CTRL_18-average_precip_deciduous_CTRL_17
+
+percent_difference <- (average_precip_deciduous_CTRL_18-average_precip_deciduous_CTRL_17) / ((average_precip_deciduous_CTRL_18+average_precip_deciduous_CTRL_17)/2)*100
 
 X.GPP <- ggplot() +
   geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_PSN_t00X), shape = 15, size = 0.33) +
@@ -917,18 +919,21 @@ X.GPP <- ggplot() +
 
 ```{r}
 ## OUTSIDE
-gpp.mod.carter <- glm(delta_PSN_t00X ~ normalized_ctrl_GPP:as.factor(treatment):as.factor(year), outside_filtered, family="gaussian")
-sm.mod.carter <- glm(delta_SMOIS_t00X ~ normalized_ctrl_SM:as.factor(treatment):as.factor(year), outside_filtered, family="gaussian")
-vpd.mod.carter <- glm(delta_VPD_t00X ~ normalized_ctrl_VPD:as.factor(treatment):as.factor(year), outside_filtered, family="gaussian")
-vt.mod.carter <- glm(delta_VT_t00X ~ normalized_ctrl_VT:as.factor(treatment):as.factor(year), outside_filtered, family="gaussian")
-apar.mod.carter <- glm(delta_APAR_t00X ~ normalized_ctrl_APAR:as.factor(treatment):as.factor(year), outside_filtered, family="gaussian")
+gpp.mod.carter <- glm(delta_PSN_t00X ~ 0 + as.factor(treatment):as.factor(year) + normalized_ctrl_GPP:as.factor(treatment):as.factor(year), outside_filtered, family="gaussian")
+sm.mod.carter <- glm(delta_SMOIS_t00X ~ 0 + as.factor(treatment):as.factor(year) + normalized_ctrl_SM:as.factor(treatment):as.factor(year), outside_filtered, family="gaussian")
+vpd.mod.carter <- glm(delta_VPD_t00X ~ 0 + as.factor(treatment):as.factor(year) + normalized_ctrl_VPD:as.factor(treatment):as.factor(year), outside_filtered, family="gaussian")
+vt.mod.carter <- glm(delta_VT_t00X ~ 0 + as.factor(treatment):as.factor(year) + normalized_ctrl_VT:as.factor(treatment):as.factor(year), outside_filtered, family="gaussian")
+apar.mod.carter <- glm(delta_APAR_t00X ~ 0 + as.factor(treatment):as.factor(year) + normalized_ctrl_APAR:as.factor(treatment):as.factor(year), outside_filtered, family="gaussian")
+
+outside_filtered2 <- outside_filtered %>% filter(year == 2017, treatment == 1)
+lm(outside_filtered2$delta_VPD_t00X ~ outside_filtered2$normalized_ctrl_VPD)
 
 make_awful_carter_table <- function(fit, var){
   cf  <- summary(fit)$coefficients
   idx <- grep("normalized_ctrl", rownames(cf))
   trm <- rownames(cf)[idx]
   data.frame(variable = var,
-             year = sub(".*as\\.factor\\(year\\)([0-9]+)$", "\\1", trm),
+             year = sub(".*as\\.factor\\(year\\)([0-9]+).*", "\\1", trm),
              treatment = sub(".*as\\.factor\\(treatment\\)([0-9]+).*", "\\1", trm),
              p_val = cf[idx, 4],
              slope = cf[idx, 1],
@@ -944,19 +949,19 @@ apar.mod.carter.mods <- make_awful_carter_table(apar.mod.carter, "APAR")
 all_mods_table_carter <- bind_rows(gpp.mod.carter.mods, sm.mod.carter.mods, vpd.mod.carter.mods, vt.mod.carter.mods, apar.mod.carter.mods) %>% 
   mutate(p_val = ifelse(p_val > 0.01, NA, p_val))
 
-range(gpp.mod.carter.mods$slope) #-0.23, 0.23
-range(sm.mod.carter.mods$slope) #-0.0040, 0.0040
-range(vpd.mod.carter.mods$slope) #-0.0040, 0.0040
-range(vt.mod.carter.mods$slope) #-5, 5
-range(apar.mod.carter.mods$slope) #-2.92, 2.92
+range(gpp.mod.carter.mods$slope) #-0.219, 0.219
+range(sm.mod.carter.mods$slope) #-0.00372, 0.00372
+range(vpd.mod.carter.mods$slope) #-33.57, 33.57
+range(vt.mod.carter.mods$slope) #-5.17, 5.17
+range(apar.mod.carter.mods$slope) #-3.51, 3.51
 
 mods_graph_legend_labels_carter <- c("APAR" = "APAR", "GPP" = "GPP", "SM" = "SM", "VPD" = "VPD", "VT" = "VT")
 
-scico_lims_carter <- list("APAR" = c(-2.92, 2.92),
-                   "GPP" = c(-0.23, 0.23),
-                   "SM" = c(-0.0040, 0.0040),
-                   "VPD" = c(-30, 30),
-                   "VT" = c(-5, 5))
+scico_lims_carter <- list("APAR" = c(-3.51, 3.51),
+                   "GPP" = c(-0.219, 0.219),
+                   "SM" = c(-0.00372, 0.00372),
+                   "VPD" = c(-33.57, 33.57),
+                   "VT" = c(-5.17, 5.17))
 
 scico_breaks_carter <- list("APAR" = c(-2, 0, 2),
                    "GPP" = c(-0.1, 0, 0.1),
@@ -980,20 +985,20 @@ save_mods_graph_carter <- mods_graph_carter +
 
 
 ## INSIDE
-def2_glm_SW <- glm(delta_SWDOWN_t00X ~ normalized_ctrl_SW:as.factor(treatment):as.factor(year), inside, family = "gaussian")
-def2_glm_GT <- glm(delta_GT_t00X ~ normalized_ctrl_GT:as.factor(treatment):as.factor(year), inside, family = "gaussian")
-def2_glm_VPD <- glm(delta_VPD_t00X ~ normalized_ctrl_VPD:as.factor(treatment):as.factor(year), inside, family = "gaussian")
-def2_glm_SM <- glm(delta_SMOIS_t00X ~ normalized_ctrl_SM:as.factor(treatment):as.factor(year), inside, family = "gaussian")
-def2_glm_ET <- glm(delta_ET_t00X ~ normalized_ctrl_ET:as.factor(treatment):as.factor(year), inside, family = "gaussian")
-def2_glm_PRCP <- glm(delta_RAINNC_t00X ~ normalized_ctrl_PRCP:as.factor(treatment):as.factor(year), inside, family = "gaussian")
-def2_glm_W <- glm(delta_W_t00X ~ normalized_ctrl_W:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def2_glm_SW <- glm(delta_SWDOWN_t00X ~ 0 + as.factor(treatment):as.factor(year) + normalized_ctrl_SW:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def2_glm_GT <- glm(delta_GT_t00X ~ 0 + as.factor(treatment):as.factor(year) + normalized_ctrl_GT:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def2_glm_VPD <- glm(delta_VPD_t00X ~ 0 + as.factor(treatment):as.factor(year) + normalized_ctrl_VPD:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def2_glm_SM <- glm(delta_SMOIS_t00X ~ 0 + as.factor(treatment):as.factor(year) + normalized_ctrl_SM:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def2_glm_ET <- glm(delta_ET_t00X ~ 0 + as.factor(treatment):as.factor(year) + normalized_ctrl_ET:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def2_glm_PRCP <- glm(delta_RAINNC_t00X ~ 0 + as.factor(treatment):as.factor(year) + normalized_ctrl_PRCP:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def2_glm_W <- glm(delta_W_t00X ~ 0 + as.factor(treatment):as.factor(year) + normalized_ctrl_W:as.factor(treatment):as.factor(year), inside, family = "gaussian")
 
 make_awful_carter_table_def2 <- function(fit, var){
   cf  <- summary(fit)$coefficients
   idx <- grep("normalized_ctrl", rownames(cf))
   trm <- rownames(cf)[idx]
   data.frame(variable = var,
-             year = sub(".*as\\.factor\\(year\\)([0-9]+)$", "\\1", trm),
+             year = sub(".*as\\.factor\\(year\\)([0-9]+).*", "\\1", trm),
              treatment = sub(".*as\\.factor\\(treatment\\)([0-9]+).*", "\\1", trm),
              p_val = cf[idx, 4],
              slope = cf[idx, 1],
@@ -1011,13 +1016,13 @@ def2_W.mods <- make_awful_carter_table_def2(def2_glm_W, "W")
 all_mods_table_def2 <- bind_rows(def2_GT.mods, def2_VPD.mods, def2_SW.mods, def2_SM.mods, def2_ET.mods, def2_PRCP.mods, def2_W.mods) %>% 
   mutate(p_val = ifelse(p_val > 0.01, NA, p_val))
 
-range(def2_GT.mods$slope) #-130, 130
-range(def2_VPD.mods$slope) #-275, 275
-range(def2_SW.mods$slope) #-100, 100
-range(def2_SM.mods$slope) #-0.12, 0.12
-range(def2_ET.mods$slope) #-7.42e-05, 7.42e-05
-range(def2_PRCP.mods$slope) #-1.01, 1.01
-range(def2_W.mods$slope) #-0.012, 0.012
+range(def2_GT.mods$slope) #-138.63, 138.63
+range(def2_VPD.mods$slope) #-281, 281
+range(def2_SW.mods$slope) #-67.03, 67.03
+range(def2_SM.mods$slope) #-0.105, 0.105
+range(def2_ET.mods$slope) #-6.95e-05, 6.95e-05
+range(def2_PRCP.mods$slope) #-0.969, 0.969
+range(def2_W.mods$slope) #-0.0110, 0.0110
 
 
 mods_graph_legend_labels_def2 <- c("GT" = "GT", "VPD" = "VPD", "SW" = "SW", "SM" = "SM", "ET" = "ET", "PRCP" = "PRCP", "W" = "W")
@@ -1025,13 +1030,13 @@ mods_graph_legend_labels_def2 <- c("GT" = "GT", "VPD" = "VPD", "SW" = "SW", "SM"
 #var_temp <- all_mods_table$variable == "SM"
 #range(all_mods_table$slope[var_temp])
 
-scico_lims2 <- list("GT" = c(-130, 130),
-                   "VPD" = c(-275, 275),
-                   "SW" = c(-100, 100),
-                   "SM" = c(-0.12, 0.12),
-                   "ET" = c(-7.42e-05, 7.42e-05),
-                   "PRCP" = c(-1.01, 1.01),
-                   "W" = c(-0.012, 0.012))
+scico_lims2 <- list("GT" = c(-138.63, 138.63),
+                   "VPD" = c(-281, 281),
+                   "SW" = c(-67.03, 67.03),
+                   "SM" = c(-0.105, 0.105),
+                   "ET" = c(-6.95e-05, 6.95e-05),
+                   "PRCP" = c(-0.969, 0.969),
+                   "W" = c(-0.0110, 0.0110))
 
 scico_breaks2 <- list("GT" = c(-65, 65),
                    "VPD" = c(-150, 150),
@@ -1058,7 +1063,7 @@ save_mods_graph_carter_def2 <- mods_graph_carter2 +
 
 combined_S1_6 <- ggarrange(save_mods_graph_carter_def2, save_mods_graph_carter, ncol = 1)
 
-ggsave("~/Desktop/combined_S1_6.pdf", combined_S1_6, width = 17, height = 6, units = "in")
+#ggsave("~/Desktop/combined_S1_6_NEW.pdf", combined_S1_6, width = 17, height = 6, units = "in")
 
 ```
 
@@ -1066,20 +1071,31 @@ ggsave("~/Desktop/combined_S1_6.pdf", combined_S1_6, width = 17, height = 6, uni
 ## Spatial Attenuation Dot Plot:
 
 ```{r}
-glm_SM <- glm(delta_SMOIS_t00X ~ distance_to_LU16_km:theta_bucket:as.factor(treatment):as.factor(year), outside_filtered, family = "gaussian")
-glm_VT <- glm(delta_VT_t00X ~ distance_to_LU16_km:theta_bucket:as.factor(treatment):as.factor(year), outside_filtered, family = "gaussian")
-glm_VPD <- glm(delta_VPD_t00X ~ distance_to_LU16_km:theta_bucket:as.factor(treatment):as.factor(year), outside_filtered, family = "gaussian")
-glm_APAR <- glm(delta_APAR_t00X ~ distance_to_LU16_km:theta_bucket:as.factor(treatment):as.factor(year), outside_filtered, family = "gaussian")
-glm_GPP <- glm(delta_PSN_t00X ~ distance_to_LU16_km:theta_bucket:as.factor(treatment):as.factor(year), outside_filtered, family = "gaussian")
+glm_SM <- glm(delta_SMOIS_t00X ~ 0 + theta_bucket:as.factor(treatment):as.factor(year) + distance_to_LU16_km:theta_bucket:as.factor(treatment):as.factor(year), outside_filtered, family = "gaussian")
+glm_VT <- glm(delta_VT_t00X ~ 0 + theta_bucket:as.factor(treatment):as.factor(year) + distance_to_LU16_km:theta_bucket:as.factor(treatment):as.factor(year), outside_filtered, family = "gaussian")
+glm_VPD <- glm(delta_VPD_t00X ~ 0 + theta_bucket:as.factor(treatment):as.factor(year) + distance_to_LU16_km:theta_bucket:as.factor(treatment):as.factor(year), outside_filtered, family = "gaussian")
+glm_APAR <- glm(delta_APAR_t00X ~ 0 + theta_bucket:as.factor(treatment):as.factor(year) + distance_to_LU16_km:theta_bucket:as.factor(treatment):as.factor(year), outside_filtered, family = "gaussian")
+glm_GPP <- glm(delta_PSN_t00X ~ 0 + theta_bucket:as.factor(treatment):as.factor(year) + distance_to_LU16_km:theta_bucket:as.factor(treatment):as.factor(year), outside_filtered, family = "gaussian")
+
+
+#test_VPD <- outside_filtered %>% select(delta_VPD_t00X, distance_to_LU16_km, theta_bucket, treatment, year) %>% filter(year == 2017, treatment == 1, theta_bucket == "bucket2")
+
+#ggplot(data = test_VPD) +
+#  geom_point(aes(x = distance_to_LU16_km, y = delta_VPD_t00X)) +
+#  geom_smooth(aes(x = distance_to_LU16_km, y = delta_VPD_t00X), method = "lm") +
+#  theme_bw()
+
+#lm(test_VPD$delta_VPD_t00X ~ test_VPD$distance_to_LU16_km)
+
 
 make_awful_table <- function(fit, var){
   cf  <- summary(fit)$coefficients
-  idx <- grep("distance_to_LU16_km:theta_bucket", rownames(cf))
+  idx <- grep("distance_to_LU16_km", rownames(cf))
   trm <- rownames(cf)[idx]
   data.frame(theta_bucket = sub(".*theta_bucketbucket([^:]+):.*", "\\1", trm),
-             variable = var,
-             year = sub(".*as\\.factor\\(year\\)([0-9]+)$", "\\1", trm),
              treatment = sub(".*as\\.factor\\(treatment\\)([0-9]+).*", "\\1", trm),
+             year = sub(".*as\\.factor\\(year\\)([0-9]+).*", "\\1", trm),
+             variable = var,
              p_val = cf[idx, 4],
              slope = cf[idx, 1],
              row.names = NULL)
@@ -1097,48 +1113,71 @@ all_mods_table <- bind_rows(VT.mods, VPD.mods, SM.mods, APAR.mods, GPP.mods) %>%
 all_mods_table <- all_mods_table %>% mutate(theta_bucket2 = recode(theta_bucket, '1' = "ENE", '2' = "NNE", '3' = "NNW", '4' = "WNW", '5' = "WSW", '6' = "SSW", '7' = "SSE", '8' = "ESE"))
 all_mods_table$theta_bucket2 <- factor(all_mods_table$theta_bucket2, levels = c("ENE", "NNE", "NNW", "WNW", "WSW", "SSW", "SSE", "ESE"))
 
-range(VT.mods$slope) #-0.00262, 0.00262
-range(VPD.mods$slope) #-0.463, 0.463
-range(SM.mods$slope) #-0.0000802, 0.0000802
-range(APAR.mods$slope) #-0.0105, 0.0105
-range(GPP.mods$slope) #-0.0026, 0.0026
+range(VT.mods$slope) #-0.00463, 0.00463
+range(VPD.mods$slope) #-0.828, 0.828
+range(SM.mods$slope) #-0.000202, 0.000202
+range(APAR.mods$slope) #-0.0174, 0.0174
+range(GPP.mods$slope) #-0.00477, 0.00477
 
 
 mods_graph_legend_labels <- c("APAR" = "APAR", "GPP" = "GPP", "SM" = "SM", "VPD" = "VPD", "VT" = "VT")
 
-#var_temp <- all_mods_table$variable == "SM"
-#range(all_mods_table$slope[var_temp])
+scico_lims <- list("APAR" = c(-0.0174, 0.0174),
+                   "GPP" = c(-0.00477, 0.00477),
+                   "SM" = c(-0.000202, 0.000202),
+                   "VPD" = c(-0.828, 0.828),
+                   "VT" = c(-0.00463, 0.00463))
 
-scico_lims <- list("APAR" = c(-0.0105, 0.0105),
-                   "GPP" = c(-0.00252, 0.00252),
-                   "SM" = c(-0.0000802, 0.0000802),
-                   "VPD" = c(-0.463, 0.463),
-                   "VT" = c(-0.00262, 0.00262))
+scico_breaks <- list("APAR" = c(-0.01, 0.01),
+                   "GPP" = c(-0.0025, 0.0025),
+                   "SM" = c(-0.0001, 0.0001),
+                   "VPD" = c(-0.41, 0.41),
+                   "VT" = c(-0.0023, 0.0023))
 
-scico_breaks <- list("APAR" = c(-0.0055, 0.0055),
-                   "GPP" = c(-0.00175, 0.00175),
-                   "SM" = c(-0.000043, 0.000043),
-                   "VPD" = c(-0.22, 0.22),
-                   "VT" = c(-0.0014, 0.0014))
+#attenuation_intercepts <- function(fit, var){
+#  cf  <- summary(fit)$coefficients
+#  idx <- grep("theta_bucketbucket.*as\\.factor\\(treatment\\).*as\\.factor\\(year\\)[^:]*$", rownames(cf))
+#  trm <- rownames(cf)[idx]
+#  data.frame(theta_bucket = sub(".*theta_bucketbucket([^:]+):.*", "\\1", trm),
+#             treatment = sub(".*as\\.factor\\(treatment\\)([0-9]+).*", "\\1", trm),
+#             year = sub(".*as\\.factor\\(year\\)([0-9]+).*", "\\1", trm),
+#             variable = var,
+#             p_val = cf[idx, 4],
+#             slope = cf[idx, 1],
+#             row.names = NULL)
+#}
+
+#VT.intercepts <- attenuation_intercepts(glm_VT, "VT")
+#VPD.intercepts <- attenuation_intercepts(glm_VPD, "VPD")
+#SM.intercepts <- attenuation_intercepts(glm_SM, "SM")
+#APAR.intercepts <- attenuation_intercepts(glm_APAR, "APAR")
+#GPP.intercepts <- attenuation_intercepts(glm_GPP, "GPP")
+
+#all_intercepts_table <- bind_rows(VT.intercepts, VPD.intercepts, SM.intercepts, APAR.intercepts, GPP.intercepts) %>% 
+#  mutate(intercept = slope,
+#         intercept = ifelse(p_val > 0.01, NA, intercept),
+#         pos_neg_intercept = ifelse(intercept > 0, "+", "-")) %>% select(-slope, -p_val)
+
+#all_mods_table <- left_join(all_mods_table, all_intercepts_table, by = c("theta_bucket", "treatment", "year", "variable"))
 
 
 mods_graph <- ggplot()
 for (g in unique(all_mods_table$variable)) {
   df <- all_mods_table %>% filter(variable == g)
-  mods_graph <- mods_graph + new_scale_color() + geom_point(data = df, aes(x = treatment, y = theta_bucket2, color = slope, size = pmin(-log10(p_val), 10))) +
+  mods_graph <- mods_graph + new_scale_color() + geom_point(data = df, aes(x = treatment, y = theta_bucket2, size = pmin(-log10(p_val), 10), color = slope)) +
   scale_color_scico(palette = "vik", name = paste(mods_graph_legend_labels[g]), direction = -1, limits = scico_lims[[g]], breaks = scico_breaks[[g]])
 }
 save_mods_graph <- mods_graph + 
   facet_grid(year ~ variable) +
   theme_bw() +
   coord_fixed(ratio = 0.75) +
-  labs(x = "Deforestation Scenario", size = NULL, y = "Cardinal Direction") +
+  labs(x = "Deforestation Scenario", size = NULL, y = "Cardinal Direction", color = NULL) +
   theme(legend.position = "bottom", legend.key.width = unit(0.62, "cm"), strip.text = element_text(size = 16))
 
 
 #, axis.title.x = element_blank(), axis.title.y = element_blank()
 
-ggsave("~/Desktop/FIG11_corrected.pdf", save_mods_graph, width = 14, height = 6.5, units = "in")
+#ggsave("~/Desktop/FIG11_NEW2.pdf", save_mods_graph, width = 14, height = 6.5, units = "in")
 
 ```
 
@@ -1411,19 +1450,19 @@ kable(inside_model_table, format = "latex", digits = 2, booktabs = TRUE)
 require(knitr)
 
 intercept.glm <- glm(delta_PSN_t00X ~ 1, data = outside_filtered, family = gaussian)
-null.glm <- glm(delta_PSN_t00X ~ as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
-AVG.CTRL.GPP.glm <- glm(delta_PSN_t00X ~ Mean_CTRL_PSN + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
-X.APAR.glm <- glm(delta_PSN_t00X ~ delta_APAR_t00X + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
-X.SM.glm <- glm(delta_PSN_t00X ~ delta_SMOIS_t00X + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
-X.VT.glm <- glm(delta_PSN_t00X ~ delta_VT_t00X + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
-X.VPD.glm <- glm(delta_PSN_t00X ~ delta_VPD_t00X + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
-APAR.VT.glm <- glm(delta_PSN_t00X ~ delta_APAR_t00X + delta_VT_t00X + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
-APAR.VT.SM.glm <- glm(delta_PSN_t00X ~ delta_APAR_t00X + delta_VT_t00X + delta_SMOIS_t00X + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
-APAR.VT.SM.VPD.glm <- glm(delta_PSN_t00X ~ delta_APAR_t00X + delta_VT_t00X + delta_SMOIS_t00X + delta_VPD_t00X + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
-APAR.VT.SM.VPD.AVG_CTRL.glm <- glm(delta_PSN_t00X ~ delta_APAR_t00X + delta_VT_t00X + delta_SMOIS_t00X + delta_VPD_t00X + Mean_CTRL_PSN + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
+null.glm <- glm(delta_PSN_t00X ~ 0 + theta_bucket:as.factor(treatment):as.factor(year) + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
+AVG.CTRL.GPP.glm <- glm(delta_PSN_t00X ~ 0 + theta_bucket:as.factor(treatment):as.factor(year) + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year) + Mean_CTRL_PSN, data = outside_filtered, family = gaussian)
+X.APAR.glm <- glm(delta_PSN_t00X ~ 0 + theta_bucket:as.factor(treatment):as.factor(year) + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year) + delta_APAR_t00X, data = outside_filtered, family = gaussian)
+X.SM.glm <- glm(delta_PSN_t00X ~ 0 + theta_bucket:as.factor(treatment):as.factor(year) + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year) + delta_SMOIS_t00X, data = outside_filtered, family = gaussian)
+X.VT.glm <- glm(delta_PSN_t00X ~ 0 + theta_bucket:as.factor(treatment):as.factor(year) + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year) + delta_VT_t00X, data = outside_filtered, family = gaussian)
+X.VPD.glm <- glm(delta_PSN_t00X ~ 0 + theta_bucket:as.factor(treatment):as.factor(year) + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year) + delta_VPD_t00X, data = outside_filtered, family = gaussian)
+APAR.VT.glm <- glm(delta_PSN_t00X ~ 0 + theta_bucket:as.factor(treatment):as.factor(year) + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year) + delta_VT_t00X + delta_APAR_t00X, data = outside_filtered, family = gaussian)
+APAR.VT.SM.glm <- glm(delta_PSN_t00X ~ 0 + theta_bucket:as.factor(treatment):as.factor(year) + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year) + delta_APAR_t00X + delta_VT_t00X + delta_SMOIS_t00X, data = outside_filtered, family = gaussian)
+APAR.VT.SM.VPD.glm <- glm(delta_PSN_t00X ~ 0 + theta_bucket:as.factor(treatment):as.factor(year) + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year) + delta_APAR_t00X + delta_VT_t00X + delta_SMOIS_t00X + delta_VPD_t00X, data = outside_filtered, family = gaussian)
+APAR.VT.SM.VPD.AVG_CTRL.glm <- glm(delta_PSN_t00X ~ 0 + theta_bucket:as.factor(treatment):as.factor(year) + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year) + delta_APAR_t00X + delta_VT_t00X + delta_SMOIS_t00X + delta_VPD_t00X + Mean_CTRL_PSN, data = outside_filtered, family = gaussian)
 
 
-best.model.glm <- glm(delta_PSN_t00X ~ as.factor(year):as.factor(treatment):delta_APAR_t00X + as.factor(year):as.factor(treatment):delta_VT_t00X + as.factor(year):as.factor(treatment):delta_SMOIS_t00X + as.factor(year):as.factor(treatment):delta_VPD_t00X + as.factor(year):as.factor(treatment):Mean_CTRL_PSN + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
+best.model.glm <- glm(delta_PSN_t00X ~ 0 + theta_bucket:as.factor(treatment):as.factor(year) + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year) + as.factor(year):as.factor(treatment):delta_APAR_t00X + as.factor(year):as.factor(treatment):delta_VT_t00X + as.factor(year):as.factor(treatment):delta_SMOIS_t00X + as.factor(year):as.factor(treatment):delta_VPD_t00X + as.factor(year):as.factor(treatment):Mean_CTRL_PSN, data = outside_filtered, family = gaussian)
 
 #GLM_Table <- data.frame(VARIABLE = c("Intercept Only", "Base Model", "AVG.CTRL.GPP", "X.APAR", "X.SM", "X.VT", "X.VPD", "X.VT + X.APAR", "X.VT + X.APAR + X.SM", "X.VT + X.APAR + X.SM + X.VPD"),
 #                        AIC = c(AIC(intercept.glm), AIC(null.glm), AIC(AVG.CTRL.GPP.glm), AIC(X.APAR.glm), AIC(X.SM.glm), AIC(X.VT.glm), AIC(X.VPD.glm), AIC(APAR.VT.glm), AIC(APAR.VT.SM.glm), AIC(APAR.VT.SM.VPD.glm)),
@@ -1443,34 +1482,39 @@ kable(Ford_formatted_GLM_Table, format = "latex", digits = 2, booktabs = TRUE)
 ##THIS CODE SUCKS, BUT WORKS. MODIFIED OTHER CODE IN LAZIEST WAY POSSIBLE. WHOOPS.
 last_awful_table <- function(fit){
   cf  <- summary(fit)$coefficients
-  idx <- grep("as\\.factor\\(year\\).*as\\.factor\\(treatment\\).*", rownames(cf))
+  idx <- grep("as\\.factor\\(treatment\\).*as\\.factor\\(year\\).*Mean_.*", rownames(cf))
   trm <- rownames(cf)[idx]
-  data.frame(year = sub(".*as\\.factor\\(year\\)([0-9]+)$", "\\1", trm),
+  data.frame(year = sub(".*as\\.factor\\(year\\)([0-9]+).*", "\\1", trm),
              treatment = sub(".*as\\.factor\\(treatment\\)([0-9]+).*", "\\1", trm),
+             variable = sub(".*:(Mean_[^:]+)$", "\\1", trm),
              p_val = cf[idx, 4],
              slope = cf[idx, 1],
              row.names = NULL)
 }
 
-last.awful.mod <- last_awful_table(best.model.glm) %>% slice(1:60) %>% separate(year, into = c("year", "treatment", "variable"), sep = ":") %>% mutate(year = sub("as\\.factor\\(year\\)", "", year), treatment = sub("as\\.factor\\(treatment\\)", "", treatment))
+last.awful.mod <- last_awful_table(best.model.glm) #%>% slice(1:60) #%>% separate(year, into = c("year", "treatment", "variable"), sep = ":") #%>% mutate(year = sub("as\\.factor\\(year\\)", "", year), treatment = sub("as\\.factor\\(treatment\\)", "", treatment))
 
 #last.awful.mod.pivoted <- last.awful.mod %>% select(-p_val) %>% pivot_wider(names_from = variable, values_from = slope)
 #write.csv(last.awful.mod.pivoted, "~/Desktop/data_for_aov.csv")
 
 
-last.awful.mod.2017 <- last.awful.mod %>% filter(year == 2017) %>% select(-p_val, -year) %>% pivot_wider(names_from = variable, values_from = slope)
-last.awful.mod.2018 <- last.awful.mod %>% filter(year == 2018) %>% select(-p_val, -year) %>% pivot_wider(names_from = variable, values_from = slope)
+last.awful.mod.2017 <- last.awful.mod %>% filter(year == 2017) %>% select(-p_val, -year) %>% mutate(slope = round(slope, 3)) %>% pivot_wider(names_from = variable, values_from = slope)
+last.awful.mod.2018 <- last.awful.mod %>% filter(year == 2018) %>% select(-p_val, -year) %>% mutate(slope = round(slope, 3)) %>% pivot_wider(names_from = variable, values_from = slope)
 last.awful.mod.summary <- last.awful.mod %>% group_by(year, variable) %>% summarize(slope = mean(slope))
 kable(t(last.awful.mod.2017), format = "latex", digits = 2, booktabs = TRUE)
 kable(t(last.awful.mod.2018), format = "latex", digits = 2, booktabs = TRUE)
-kable(last.awful.mod.summary, format = "latex", digits = 4, booktabs = TRUE)
+kable(last.awful.mod.summary, format = "latex", digits = 3, booktabs = TRUE)
 
 
 require(emmeans)
 
 outside_filtered2 <- outside_filtered %>% mutate(year = as.factor(year), treatment = as.factor(treatment))
 
-best.model.glm2 <- glm(delta_PSN_t00X ~ year:treatment:delta_APAR_t00X + year:treatment:delta_VT_t00X + year:treatment:delta_SMOIS_t00X + year:treatment:delta_VPD_t00X + year:treatment:Mean_CTRL_PSN + theta_bucket:distance_to_LU16_km:year:treatment, data = outside_filtered2, family = gaussian)
+#best.model.glm2 <- glm(delta_PSN_t00X ~ year:treatment:delta_APAR_t00X + year:treatment:delta_VT_t00X + year:treatment:delta_SMOIS_t00X + year:treatment:delta_VPD_t00X + year:treatment:Mean_CTRL_PSN + theta_bucket:distance_to_LU16_km:year:treatment, data = outside_filtered2, family = gaussian)
+
+
+best.model.glm2 <- glm(delta_PSN_t00X ~ 0 + theta_bucket:year:treatment + theta_bucket:distance_to_LU16_km:year:treatment + year:treatment:delta_APAR_t00X + year:treatment:delta_VT_t00X + year:treatment:delta_SMOIS_t00X + year:treatment:delta_VPD_t00X + year:treatment:Mean_CTRL_PSN, data = outside_filtered2, family = gaussian)
+
 
 sm_slopes_compared <- emtrends(best.model.glm2, pairwise ~ year:treatment, nesting = NULL, var = "delta_SMOIS_t00X", adjust = "Tukey")
 vt_slopes_compared <- emtrends(best.model.glm2, pairwise ~ year:treatment, nesting = NULL, var = "delta_VT_t00X", adjust = "Tukey")
