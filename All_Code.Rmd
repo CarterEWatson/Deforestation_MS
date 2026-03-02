@@ -25,6 +25,7 @@ require(geosphere)
 require(RColorBrewer)
 require(ggnewscale)
 require(knitr)
+require(emmeans)
 ```
 
 
@@ -337,9 +338,14 @@ ctrl_18 <- read.csv("./data/csvs/all_points/December2025_18.001_all_points.csv")
 ```
 
 
-## New Figure 1)
+===========================================================
 
-Figs. 2.1-2.3 can be combined into 1 4 panel figure – this provides all the background/context
+
+
+
+######### PLOTS #########
+
+## New Figure 1)
 
 ```{r}
 selected_states2 <- states %>% 
@@ -498,8 +504,6 @@ rm(lat, lon, landuse, land_use, MODISpoints, elevation, full_table, nc_whatever_
 
 ## New Figure 2)
 
-Figs. 2.4 and 2.5 can be combined into a nice 4 panel as well – this conveys all the mechanism, parameters, validation for GPP
-
 ```{r}
 modis_gpp_list <- list()
 model_1_gpp_list <- list()
@@ -592,8 +596,6 @@ time_plot3 <- ggplot(final_data) +
 
 
 ## New Figure 3)
-
-Maybe the scenarios could be squeezed into a 1x6, to save some space?
 
 ```{r}
 nc_17_001 <- nc_open("./data/netCDF_files/wrfout_2017_t001_domain.nc")
@@ -722,7 +724,6 @@ LU_maps_plot <- ggplot() +
 
 
 ## New Figure 4)
-Make an 8 panel map figure, with VPD, SW, SM, and GPP; this is probably pretty important for motivating linear models and Fig. 3.20.
 
 ```{r}
 require(data.table)
@@ -780,12 +781,7 @@ ctrl_plot <- ctrls +
 ```
 
 
-
-
-######### PLOTS #########
-
-
-## BIG BEAUTIFUL PLOT (+ Delta GPP Plot)
+## BIG BEAUTIFUL PLOT (+ Delta GPP Plot) (5 + 8)
 
 ```{r}
 range(outside_filtered$delta_VPD_t00X) ## -93, 93
@@ -915,7 +911,7 @@ X.GPP <- ggplot() +
 ```
 
 
-## Environmental Context Dot Plot (Inside and Outside):
+## Environmental Context Dot Plot (Inside and Outside) (Figure 6)
 
 ```{r}
 ## OUTSIDE
@@ -1068,7 +1064,7 @@ combined_S1_6 <- ggarrange(save_mods_graph_carter_def2, save_mods_graph_carter, 
 ```
 
 
-## Spatial Attenuation Dot Plot:
+## Spatial Attenuation Dot Plot (Figure 7)
 
 ```{r}
 glm_SM <- glm(delta_SMOIS_t00X ~ 0 + theta_bucket:as.factor(treatment):as.factor(year) + distance_to_LU16_km:theta_bucket:as.factor(treatment):as.factor(year), outside_filtered, family = "gaussian")
@@ -1182,7 +1178,7 @@ save_mods_graph <- mods_graph +
 ```
 
 
-## BIG BEAUTIFUL PLOT (SUPPLEMENTAL)
+## BIG BEAUTIFUL PLOT (SUPPLEMENTAL FIGURE S1)
 
 ```{r}
 range(outside_filtered$delta_ALBEDO_t00X)
@@ -1293,8 +1289,7 @@ full_6789_supplement <- ggarrange(X.ALBEDO, X.ET, X.PRCP, X.W, ncol = 1)
 
 ######## TABLES ########
 
-
-## Inside Environmental Characteristics Table
+## Inside Environmental Characteristics Table (Table 3)
 
 ```{r}
 inside_data <- inside %>% group_by(year, treatment) %>% summarize(before_VPD = mean(Mean_CTRL_VPD),
@@ -1369,7 +1364,44 @@ kable(inside_data_avgs, format = "latex", digits = 7, booktabs = TRUE)
 ```
 
 
-## Outside Environmental Characteristics Table
+## Spatial vs. Topographic Regressions (inside) Table (Table 4)
+
+```{r}
+def_glm_GT_topographic <- glm(delta_GT_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
+def_glm_VPD_topographic <- glm(delta_VPD_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
+def_glm_SM_topographic <- glm(delta_SMOIS_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
+def_glm_ET_topographic <- glm(delta_ET_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
+
+def_glm_GT_spatial <- glm(delta_GT_t00X ~ theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def_glm_VPD_spatial <- glm(delta_VPD_t00X ~ theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def_glm_SM_spatial <- glm(delta_SMOIS_t00X ~ theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+def_glm_ET_spatial <- glm(delta_ET_t00X ~ theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
+
+def_glm_GT_combined <- glm(delta_GT_t00X ~ theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
+def_glm_VPD_combined <- glm(delta_VPD_t00X ~ theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
+def_glm_SM_combined <- glm(delta_SMOIS_t00X ~ theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
+def_glm_ET_combined <- glm(delta_ET_t00X ~ theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
+
+
+inside_regressions <- data.frame(Variable = c("GT", "VPD", "SM", "ET"),
+                                 Statistic = "AIC",
+                                 Combined = c(AIC(def_glm_GT_combined), AIC(def_glm_VPD_combined), AIC(def_glm_SM_combined), AIC(def_glm_ET_combined)),
+                                 Topographic = c(AIC(def_glm_GT_topographic), AIC(def_glm_VPD_topographic), AIC(def_glm_SM_topographic), AIC(def_glm_ET_topographic)),
+                                 Spatial = c(AIC(def_glm_GT_spatial), AIC(def_glm_VPD_spatial), AIC(def_glm_SM_spatial), AIC(def_glm_ET_spatial)))
+
+inside_regressions_deltas <- data.frame(Variable = c("GT", "VPD", "SM", "ET"),
+                                 Statistic = "deltaAIC",
+                                 Combined = c(AIC(def_glm_GT_combined) - AIC(def_glm_GT_combined), AIC(def_glm_VPD_combined) - AIC(def_glm_VPD_combined), AIC(def_glm_SM_combined) - AIC(def_glm_SM_combined), AIC(def_glm_ET_combined) - AIC(def_glm_ET_combined)),
+                                 Topographic = c(AIC(def_glm_GT_topographic) - AIC(def_glm_GT_combined), AIC(def_glm_VPD_topographic) - AIC(def_glm_VPD_combined), AIC(def_glm_SM_topographic) - AIC(def_glm_SM_combined), AIC(def_glm_ET_topographic) - AIC(def_glm_ET_combined)),
+                                 Spatial = c(AIC(def_glm_GT_spatial) - AIC(def_glm_GT_combined), AIC(def_glm_VPD_spatial) - AIC(def_glm_VPD_combined), AIC(def_glm_SM_spatial) - AIC(def_glm_SM_combined), AIC(def_glm_ET_spatial) - AIC(def_glm_ET_combined)))
+
+inside_model_table <- bind_rows(inside_regressions, inside_regressions_deltas) %>% group_by(Variable)
+
+kable(inside_model_table, format = "latex", digits = 2, booktabs = TRUE)
+```
+
+
+## Outside Environmental Characteristics Table (Table 5)
 
 ```{r}
 outside_data <- outside_filtered %>% group_by(year, treatment) %>% summarize(before_VPD = mean(Mean_CTRL_VPD),
@@ -1407,48 +1439,9 @@ kable(outside_data_avgs, format = "latex", digits = 3, booktabs = TRUE)
 ```
 
 
-## Spatial vs. Topographic Regressions (inside) Table
+## GPP GLM Table (Table 6/7)
 
 ```{r}
-def_glm_GT_topographic <- glm(delta_GT_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
-def_glm_VPD_topographic <- glm(delta_VPD_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
-def_glm_SM_topographic <- glm(delta_SMOIS_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
-def_glm_ET_topographic <- glm(delta_ET_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
-
-def_glm_GT_spatial <- glm(delta_GT_t00X ~ theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
-def_glm_VPD_spatial <- glm(delta_VPD_t00X ~ theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
-def_glm_SM_spatial <- glm(delta_SMOIS_t00X ~ theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
-def_glm_ET_spatial <- glm(delta_ET_t00X ~ theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
-
-def_glm_GT_combined <- glm(delta_GT_t00X ~ theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
-def_glm_VPD_combined <- glm(delta_VPD_t00X ~ theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
-def_glm_SM_combined <- glm(delta_SMOIS_t00X ~ theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
-def_glm_ET_combined <- glm(delta_ET_t00X ~ theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
-
-
-inside_regressions <- data.frame(Variable = c("GT", "VPD", "SM", "ET"),
-                                 Statistic = "AIC",
-                                 Combined = c(AIC(def_glm_GT_combined), AIC(def_glm_VPD_combined), AIC(def_glm_SM_combined), AIC(def_glm_ET_combined)),
-                                 Topographic = c(AIC(def_glm_GT_topographic), AIC(def_glm_VPD_topographic), AIC(def_glm_SM_topographic), AIC(def_glm_ET_topographic)),
-                                 Spatial = c(AIC(def_glm_GT_spatial), AIC(def_glm_VPD_spatial), AIC(def_glm_SM_spatial), AIC(def_glm_ET_spatial)))
-
-inside_regressions_deltas <- data.frame(Variable = c("GT", "VPD", "SM", "ET"),
-                                 Statistic = "deltaAIC",
-                                 Combined = c(AIC(def_glm_GT_combined) - AIC(def_glm_GT_combined), AIC(def_glm_VPD_combined) - AIC(def_glm_VPD_combined), AIC(def_glm_SM_combined) - AIC(def_glm_SM_combined), AIC(def_glm_ET_combined) - AIC(def_glm_ET_combined)),
-                                 Topographic = c(AIC(def_glm_GT_topographic) - AIC(def_glm_GT_combined), AIC(def_glm_VPD_topographic) - AIC(def_glm_VPD_combined), AIC(def_glm_SM_topographic) - AIC(def_glm_SM_combined), AIC(def_glm_ET_topographic) - AIC(def_glm_ET_combined)),
-                                 Spatial = c(AIC(def_glm_GT_spatial) - AIC(def_glm_GT_combined), AIC(def_glm_VPD_spatial) - AIC(def_glm_VPD_combined), AIC(def_glm_SM_spatial) - AIC(def_glm_SM_combined), AIC(def_glm_ET_spatial) - AIC(def_glm_ET_combined)))
-
-inside_model_table <- bind_rows(inside_regressions, inside_regressions_deltas) %>% group_by(Variable)
-
-kable(inside_model_table, format = "latex", digits = 2, booktabs = TRUE)
-```
-
-
-## GPP GLM Table
-
-```{r}
-require(knitr)
-
 intercept.glm <- glm(delta_PSN_t00X ~ 1, data = outside_filtered, family = gaussian)
 null.glm <- glm(delta_PSN_t00X ~ 0 + theta_bucket:as.factor(treatment):as.factor(year) + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year), data = outside_filtered, family = gaussian)
 AVG.CTRL.GPP.glm <- glm(delta_PSN_t00X ~ 0 + theta_bucket:as.factor(treatment):as.factor(year) + as.factor(treatment):theta_bucket:distance_to_LU16_km:as.factor(year) + Mean_CTRL_PSN, data = outside_filtered, family = gaussian)
@@ -1506,7 +1499,14 @@ kable(t(last.awful.mod.2018), format = "latex", digits = 2, booktabs = TRUE)
 kable(last.awful.mod.summary, format = "latex", digits = 3, booktabs = TRUE)
 
 
-require(emmeans)
+
+
+```
+
+
+## Best GPP Model TukeyHSD (Table 7)
+
+```{r}
 
 outside_filtered2 <- outside_filtered %>% mutate(year = as.factor(year), treatment = as.factor(treatment))
 
@@ -1555,581 +1555,9 @@ slopes_table <- left_join(slopes_table, mean.gpp_slopes_stat_sig2, by = "contras
 
 options(knitr.kable.NA = '')
 kable(slopes_table, format = "latex", digits = 4, booktabs = TRUE)
-
 ```
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-##################### OLD SHIT #####################
-
-
-
-
-
-```{r}
-def_glm_SW_intercept <- glm(delta_SWDOWN_t00X ~ 1, inside, family = "gaussian")
-def_glm_GT_intercept <- glm(delta_GT_t00X ~ 1, inside, family = "gaussian")
-def_glm_VPD_intercept <- glm(delta_VPD_t00X ~ 1, inside, family = "gaussian")
-def_glm_SM_intercept <- glm(delta_SMOIS_t00X ~ 1, inside, family = "gaussian")
-def_glm_ET_intercept <- glm(delta_ET_t00X ~ 1, inside, family = "gaussian")
-def_glm_PRCP_intercept <- glm(delta_RAINNC_t00X ~ 1, inside, family = "gaussian")
-def_glm_W_intercept <- glm(delta_W_t00X ~ 1, inside, family = "gaussian")
-
-def_glm_SW <- glm(delta_SWDOWN_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
-def_glm_GT <- glm(delta_GT_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
-def_glm_VPD <- glm(delta_VPD_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
-def_glm_SM <- glm(delta_SMOIS_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
-def_glm_ET <- glm(delta_ET_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
-def_glm_PRCP <- glm(delta_RAINNC_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
-def_glm_W <- glm(delta_W_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year), inside, family = "gaussian")
-
-def_glm_SW_soil_type <- glm(delta_SWDOWN_t00X ~ SOIL.TYPE, inside, family = "gaussian")
-def_glm_GT_soil_type <- glm(delta_GT_t00X ~ SOIL.TYPE, inside, family = "gaussian")
-def_glm_VPD_soil_type <- glm(delta_VPD_t00X ~ SOIL.TYPE, inside, family = "gaussian")
-def_glm_SM_soil_type <- glm(delta_SMOIS_t00X ~ SOIL.TYPE, inside, family = "gaussian")
-def_glm_ET_soil_type <- glm(delta_ET_t00X ~ SOIL.TYPE, inside, family = "gaussian")
-def_glm_PRCP_soil_type <- glm(delta_RAINNC_t00X ~ SOIL.TYPE, inside, family = "gaussian")
-def_glm_W_soil_type <- glm(delta_W_t00X ~ SOIL.TYPE, inside, family = "gaussian")
-
-def_glm_SW_elevation <- glm(delta_SWDOWN_t00X ~ ELEVATION, inside, family = "gaussian")
-def_glm_GT_elevation <- glm(delta_GT_t00X ~ ELEVATION, inside, family = "gaussian")
-def_glm_VPD_elevation <- glm(delta_VPD_t00X ~ ELEVATION, inside, family = "gaussian")
-def_glm_SM_elevation <- glm(delta_SMOIS_t00X ~ ELEVATION, inside, family = "gaussian")
-def_glm_ET_elevation <- glm(delta_ET_t00X ~ ELEVATION, inside, family = "gaussian")
-def_glm_PRCP_elevation <- glm(delta_RAINNC_t00X ~ ELEVATION, inside, family = "gaussian")
-def_glm_W_elevation <- glm(delta_W_t00X ~ ELEVATION, inside, family = "gaussian")
-
-def_glm_SW_norm <- glm(delta_SWDOWN_t00X ~ normalized_ctrl_SW, inside, family = "gaussian")
-def_glm_GT_norm <- glm(delta_GT_t00X ~ normalized_ctrl_GT, inside, family = "gaussian")
-def_glm_VPD_norm <- glm(delta_VPD_t00X ~ normalized_ctrl_VPD, inside, family = "gaussian")
-def_glm_SM_norm <- glm(delta_SMOIS_t00X ~ normalized_ctrl_SM, inside, family = "gaussian")
-def_glm_ET_norm <- glm(delta_ET_t00X ~ normalized_ctrl_ET, inside, family = "gaussian")
-def_glm_PRCP_norm <- glm(delta_RAINNC_t00X ~ normalized_ctrl_PRCP, inside, family = "gaussian")
-def_glm_W_norm <- glm(delta_W_t00X ~ normalized_ctrl_W, inside, family = "gaussian")
-
-def_glm_SW_soil_base <- glm(delta_SWDOWN_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE, inside, family = "gaussian")
-def_glm_GT_soil_base <- glm(delta_GT_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE, inside, family = "gaussian")
-def_glm_VPD_soil_base <- glm(delta_VPD_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE, inside, family = "gaussian")
-def_glm_SM_soil_base <- glm(delta_SMOIS_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE, inside, family = "gaussian")
-def_glm_ET_soil_base <- glm(delta_ET_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE, inside, family = "gaussian")
-def_glm_PRCP_soil_base <- glm(delta_RAINNC_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE, inside, family = "gaussian")
-def_glm_W_soil_base <- glm(delta_W_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE, inside, family = "gaussian")
-
-def_glm_SW_elevation_base <- glm(delta_SWDOWN_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + ELEVATION, inside, family = "gaussian")
-def_glm_GT_elevation_base <- glm(delta_GT_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + ELEVATION, inside, family = "gaussian")
-def_glm_VPD_elevation_base <- glm(delta_VPD_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + ELEVATION, inside, family = "gaussian")
-def_glm_SM_elevation_base <- glm(delta_SMOIS_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + ELEVATION, inside, family = "gaussian")
-def_glm_ET_elevation_base <- glm(delta_ET_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + ELEVATION, inside, family = "gaussian")
-def_glm_PRCP_elevation_base <- glm(delta_RAINNC_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + ELEVATION, inside, family = "gaussian")
-def_glm_W_elevation_base <- glm(delta_W_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + ELEVATION, inside, family = "gaussian")
-
-def_glm_SW_elevation_soil_base <- glm(delta_SWDOWN_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
-def_glm_GT_elevation_soil_base <- glm(delta_GT_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
-def_glm_VPD_elevation_soil_base <- glm(delta_VPD_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
-def_glm_SM_elevation_soil_base <- glm(delta_SMOIS_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
-def_glm_ET_elevation_soil_base <- glm(delta_ET_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
-def_glm_PRCP_elevation_soil_base <- glm(delta_RAINNC_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
-def_glm_W_elevation_soil_base <- glm(delta_W_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION, inside, family = "gaussian")
-
-def_glm_SW_elevation_soil <- glm(delta_SWDOWN_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
-def_glm_GT_elevation_soil <- glm(delta_GT_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
-def_glm_VPD_elevation_soil <- glm(delta_VPD_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
-def_glm_SM_elevation_soil <- glm(delta_SMOIS_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
-def_glm_ET_elevation_soil <- glm(delta_ET_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
-def_glm_PRCP_elevation_soil <- glm(delta_RAINNC_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
-def_glm_W_elevation_soil <- glm(delta_W_t00X ~ ELEVATION + SOIL.TYPE, inside, family = "gaussian")
-
-def_glm_SW_elevation_soil_base_norm <- glm(delta_SWDOWN_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION + normalized_ctrl_SW, inside, family = "gaussian")
-def_glm_GT_elevation_soil_base_norm <- glm(delta_GT_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION + normalized_ctrl_GT, inside, family = "gaussian")
-def_glm_VPD_elevation_soil_base_norm <- glm(delta_VPD_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION + normalized_ctrl_VPD, inside, family = "gaussian")
-def_glm_SM_elevation_soil_base_norm <- glm(delta_SMOIS_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION + normalized_ctrl_SM, inside, family = "gaussian")
-def_glm_ET_elevation_soil_base_norm <- glm(delta_ET_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION + normalized_ctrl_ET, inside, family = "gaussian")
-def_glm_PRCP_elevation_soil_base_norm <- glm(delta_RAINNC_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION + normalized_ctrl_PRCP, inside, family = "gaussian")
-def_glm_W_elevation_soil_base_norm <- glm(delta_W_t00X ~ r_km:theta_bucket:as.factor(treatment):as.factor(year) + SOIL.TYPE + ELEVATION + normalized_ctrl_W, inside, family = "gaussian")
-
-inside_regressions <- data.frame(Variable = c("SW", "GT", "VPD", "SM", "ET", "PRCP", "W"),
-                                 Statistic = "AIC",
-                                 Base_Soil_Elev_NORMALIZED_CTRL = c(AIC(def_glm_SW_elevation_soil_base_norm), AIC(def_glm_GT_elevation_soil_base_norm), AIC(def_glm_VPD_elevation_soil_base_norm), AIC(def_glm_SM_elevation_soil_base_norm), AIC(def_glm_ET_elevation_soil_base_norm), AIC(def_glm_PRCP_elevation_soil_base_norm), AIC(def_glm_W_elevation_soil_base_norm)),
-                                 Base_Soil_Elev = c(AIC(def_glm_SW_elevation_soil_base), AIC(def_glm_GT_elevation_soil_base), AIC(def_glm_VPD_elevation_soil_base), AIC(def_glm_SM_elevation_soil_base), AIC(def_glm_ET_elevation_soil_base), AIC(def_glm_PRCP_elevation_soil_base), AIC(def_glm_W_elevation_soil_base)),
-                                 #Base_ELEV = c(AIC(def_glm_SW_elevation_base), AIC(def_glm_GT_elevation_base), AIC(def_glm_VPD_elevation_base), AIC(def_glm_SM_elevation_base), AIC(def_glm_ET_elevation_base), AIC(def_glm_PRCP_elevation_base), AIC(def_glm_W_elevation_base)),
-                                 Base_SOIL = c(AIC(def_glm_SW_soil_base), AIC(def_glm_GT_soil_base), AIC(def_glm_VPD_soil_base), AIC(def_glm_SM_soil_base), AIC(def_glm_ET_soil_base), AIC(def_glm_PRCP_soil_base), AIC(def_glm_W_soil_base)),
-                                 #SOIL_ELEV = c(AIC(def_glm_SW_elevation_soil), AIC(def_glm_GT_elevation_soil), AIC(def_glm_VPD_elevation_soil), AIC(def_glm_SM_elevation_soil), AIC(def_glm_ET_elevation_soil), AIC(def_glm_PRCP_elevation_soil), AIC(def_glm_W_elevation_soil)),
-                                 Base_Model = c(AIC(def_glm_SW), AIC(def_glm_GT), AIC(def_glm_VPD), AIC(def_glm_SM), AIC(def_glm_ET), AIC(def_glm_PRCP), AIC(def_glm_W)),
-                                 SOIL_TYPE = c(AIC(def_glm_SW_soil_type), AIC(def_glm_GT_soil_type), AIC(def_glm_VPD_soil_type), AIC(def_glm_SM_soil_type), AIC(def_glm_ET_soil_type), AIC(def_glm_PRCP_soil_type), AIC(def_glm_W_soil_type)),
-                                 ELEVATION = c(AIC(def_glm_SW_elevation), AIC(def_glm_GT_elevation), AIC(def_glm_VPD_elevation), AIC(def_glm_SM_elevation), AIC(def_glm_ET_elevation), AIC(def_glm_PRCP_elevation), AIC(def_glm_W_elevation)),
-                                 NORMALIZED_CTRL = c(AIC(def_glm_SW_norm), AIC(def_glm_GT_norm), AIC(def_glm_VPD_norm), AIC(def_glm_SM_norm), AIC(def_glm_ET_norm), AIC(def_glm_PRCP_norm), AIC(def_glm_W_norm)),
-                                 Intercept = c(AIC(def_glm_SW_intercept), AIC(def_glm_GT_intercept), AIC(def_glm_VPD_intercept), AIC(def_glm_SM_intercept), AIC(def_glm_ET_intercept), AIC(def_glm_PRCP_intercept), AIC(def_glm_W_intercept)))
-
-
-
-#Base_Soil_Elev = c(AIC(def_glm_SW_elevation_soil_base), AIC(def_glm_GT_elevation_soil_base), AIC(def_glm_VPD_elevation_soil_base), AIC(def_glm_SM_elevation_soil_base), AIC(def_glm_ET_elevation_soil_base), AIC(def_glm_PRCP_elevation_soil_base), AIC(def_glm_W_elevation_soil_base)),
-
-inside_regressions_deltaAIC <- data.frame(Variable = c("SW", "GT", "VPD", "SM", "ET", "PRCP", "W"),
-                                 Statistic = "DeltaAIC",
-                                 Base_Soil_Elev = c(NA),
-                                 Base_ELEV = c(AIC(def_glm_SW_elevation_base)-AIC(def_glm_SW_elevation_soil_base), AIC(def_glm_GT_elevation_base)-AIC(def_glm_GT_elevation_soil_base), AIC(def_glm_VPD_elevation_base)-AIC(def_glm_VPD_elevation_soil_base), AIC(def_glm_SM_elevation_base)-AIC(def_glm_SM_elevation_soil_base), AIC(def_glm_ET_elevation_base)-AIC(def_glm_ET_elevation_soil_base), AIC(def_glm_PRCP_elevation_base)-AIC(def_glm_PRCP_elevation_soil_base), AIC(def_glm_W_elevation_base)-AIC(def_glm_W_elevation_soil_base)),
-                                 Base_SOIL = c(AIC(def_glm_SW_soil_base)-AIC(def_glm_SW_elevation_soil_base), AIC(def_glm_GT_soil_base)-AIC(def_glm_GT_elevation_soil_base), AIC(def_glm_VPD_soil_base)-AIC(def_glm_VPD_elevation_soil_base), AIC(def_glm_SM_soil_base)-AIC(def_glm_SM_elevation_soil_base), AIC(def_glm_ET_soil_base)-AIC(def_glm_ET_elevation_soil_base), AIC(def_glm_PRCP_soil_base)-AIC(def_glm_PRCP_elevation_soil_base), AIC(def_glm_W_soil_base)-AIC(def_glm_W_elevation_soil_base)),
-                                 SOIL_ELEV = c(AIC(def_glm_SW_elevation_soil)-AIC(def_glm_SW_elevation_soil_base), AIC(def_glm_GT_elevation_soil)-AIC(def_glm_GT_elevation_soil_base), AIC(def_glm_VPD_elevation_soil)-AIC(def_glm_VPD_elevation_soil_base), AIC(def_glm_SM_elevation_soil)-AIC(def_glm_SM_elevation_soil_base), AIC(def_glm_ET_elevation_soil)-AIC(def_glm_ET_elevation_soil_base), AIC(def_glm_PRCP_elevation_soil)-AIC(def_glm_PRCP_elevation_soil_base), AIC(def_glm_W_elevation_soil)-AIC(def_glm_W_elevation_soil_base)),
-                                 Base_Model = c(AIC(def_glm_SW)-AIC(def_glm_SW_elevation_soil_base), AIC(def_glm_GT)-AIC(def_glm_GT_elevation_soil_base), AIC(def_glm_VPD)-AIC(def_glm_VPD_elevation_soil_base), AIC(def_glm_SM)-AIC(def_glm_SM_elevation_soil_base), AIC(def_glm_ET)-AIC(def_glm_ET_elevation_soil_base), AIC(def_glm_PRCP)-AIC(def_glm_PRCP_elevation_soil_base), AIC(def_glm_W)-AIC(def_glm_W_elevation_soil_base)),
-                                 SOIL_TYPE = c(AIC(def_glm_SW_soil_type)-AIC(def_glm_SW_elevation_soil_base), AIC(def_glm_GT_soil_type)-AIC(def_glm_GT_elevation_soil_base), AIC(def_glm_VPD_soil_type)-AIC(def_glm_VPD_elevation_soil_base), AIC(def_glm_SM_soil_type)-AIC(def_glm_SM_elevation_soil_base), AIC(def_glm_ET_soil_type)-AIC(def_glm_ET_elevation_soil_base), AIC(def_glm_PRCP_soil_type)-AIC(def_glm_PRCP_elevation_soil_base), AIC(def_glm_W_soil_type)-AIC(def_glm_W_elevation_soil_base)),
-                                 ELEVATION = c(AIC(def_glm_SW_elevation)-AIC(def_glm_SW_elevation_soil_base), AIC(def_glm_GT_elevation)-AIC(def_glm_GT_elevation_soil_base), AIC(def_glm_VPD_elevation)-AIC(def_glm_VPD_elevation_soil_base), AIC(def_glm_SM_elevation)-AIC(def_glm_SM_elevation_soil_base), AIC(def_glm_ET_elevation)-AIC(def_glm_ET_elevation_soil_base), AIC(def_glm_PRCP_elevation)-AIC(def_glm_PRCP_elevation_soil_base), AIC(def_glm_W_elevation)-AIC(def_glm_W_elevation_soil_base)),
-                                 Intercept = c(AIC(def_glm_SW_intercept)-AIC(def_glm_SW_elevation_soil_base), AIC(def_glm_GT_intercept)-AIC(def_glm_GT_elevation_soil_base), AIC(def_glm_VPD_intercept)-AIC(def_glm_VPD_elevation_soil_base), AIC(def_glm_SM_intercept)-AIC(def_glm_SM_elevation_soil_base), AIC(def_glm_ET_intercept)-AIC(def_glm_ET_elevation_soil_base), AIC(def_glm_PRCP_intercept)-AIC(def_glm_PRCP_elevation_soil_base), AIC(def_glm_W_intercept)-AIC(def_glm_W_elevation_soil_base)))
-
-inside_model_table <- bind_rows(inside_regressions, inside_regressions_deltaAIC) %>% group_by(Variable)
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## CONVECTION PLOTS
-
-```{r}
-range(inside$delta_GT_t00X) ## -0.18, 0.18
-
-X.W.inside <- ggplot() +
-  geom_point(data = inside, aes(x = Longitude, y = Latitude, color = delta_GT_t00X), shape = 15, size = 0.33) +
-  scale_color_scico(palette = "vik", name = expression("GT (K)"), limits = range(c(-3.67, 3.67))) +
-  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
-  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
-  scale_x_continuous(breaks = c(-80, -82.5)) +
-  scale_y_continuous(breaks = c(37, 38.5)) +
-  theme_test() +
-  facet_grid(year ~ treatment) +
-  labs(x = NULL, y = NULL) +
-  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
-  #standardized_theme +
-  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "bottom")
-
-ctrl_17_July2025 <- read.csv("./data/csvs/July2025/July2025_17.001_all_points.csv") %>% filter(Mean_CTRL_PSN > 2)
-
-range(ctrl_17_July2025$Mean_t00X_W)
-
-ggplot() +
-  geom_point(data = ctrl_17, aes(x = Longitude, y = Latitude, color = delta_SMOIS_t00X), shape = 15, size = 0.33) +
-  scale_color_scico(palette = "vik", name = expression("GT (K)"), limits = range(c(-0.03, 0.03))) +
-  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
-  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
-  scale_x_continuous(breaks = c(-80, -82.5)) +
-  scale_y_continuous(breaks = c(37, 38.5)) +
-  theme_test() +
-  #facet_grid(year ~ treatment) +
-  labs(x = NULL, y = NULL) +
-  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
-  #standardized_theme +
-  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "bottom")
-
-ggsave("~/Desktop/X.GT.inside.pdf", X.W.inside, width = 12, height = 4.5, units = "in")
-```
-
-
-
-
-## FIG 12) RGB MAPS
-
-```{r}
-red_vals <- seq(0, 0.2, 0.04)
-green_vals <- seq(0, 0.3, 0.06)
-blue_vals <- seq(0, 0.45, 0.09)
-colors <- expand.grid(red = red_vals,
-                      green = green_vals,
-                      blue = blue_vals) %>% mutate(RGB = rgb(red, green, blue))
-
-ggplot(colors, aes(x = green, y = red, fill = RGB)) +
-  geom_tile(color = "lightgray", linewidth = 0.3) +
-  #scale_fill_identity() +
-  scale_x_continuous(breaks = green_vals, labels = green_vals, expand = c(0,0)) +
-  scale_y_continuous(breaks = red_vals, labels = red_vals, expand = c(0,0)) +
-  labs(x = "green (APAR)", y = "red (VT)") +
-  facet_wrap(~blue, nrow = 1, labeller = labeller(blue = function(x) paste("blue (SM) =", x))) +
-  coord_fixed() +
-  theme(legend.position = 'none')
-
-
-df <- read.csv("~/Desktop/NEW_FINAL_SEPT_final_filtered_df.csv")
-df_cleaned = na.omit(df)
-
-gamma <- 1
-df_cleaned <- df_cleaned %>% mutate(X.APAR.normalized = (abs(X.APAR) / max(abs(df_cleaned$X.APAR)))^gamma,
-                                    #X.VPD.normalized = abs(X.VPD) / max(abs(df_cleaned$X.VPD)),
-                                    X.VT.normalized = (abs(X.VT) / max(abs(df_cleaned$X.VT)))^gamma,
-                                    X.SM.normalized = (abs(X.SM) / max(abs(df_cleaned$X.SM)))^gamma,
-                                    delta.RGB = rgb(X.VT.normalized, X.APAR.normalized, X.SM.normalized),
-                                    
-                                    CTRL.APAR.normalized = abs(AVG.CTRL.APAR) / max(abs(df_cleaned$AVG.CTRL.APAR)),
-                                    #CTRL.VPD.normalized = abs(AVG.CTRL.VPD) / max(abs(df_cleaned$AVG.CTRL.VPD)),
-                                    CTRL.VT.normalized = abs(AVG.CTRL.VT) / max(abs(df_cleaned$AVG.CTRL.VT)),
-                                    CTRL.SM.normalized = abs(AVG.CTRL.SM) / max(abs(df_cleaned$AVG.CTRL.SM)),
-                                    ctrl.RGB = rgb(CTRL.VT.normalized, CTRL.APAR.normalized, CTRL.SM.normalized))
-
-#sm_limited <- df_cleaned %>% filter(X.APAR.normalized < 0.5, X.VT.normalized < 0.5, X.SM.normalized < 0.5)
-
-#sm_limited$delta.RGB = rgb(sm_limited$X.VT.normalized + 0.3, sm_limited$X.APAR.normalized + 0.3, sm_limited$X.SM.normalized + 0.3)
-
-ggplot() +
-  geom_point(data = df_cleaned, aes(x = Longitude, y = Latitude, color = delta.RGB), shape = 15, size = 0.33) +
-  scale_color_identity() +
-  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0)  +
-  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
-  scale_x_continuous(breaks = c(-80, -82.5)) +
-  scale_y_continuous(breaks = c(37, 38.5)) +
-  labs(x = NULL, y = NULL) +
-  facet_grid(Year ~ Treatment) +
-  theme_test() +
-  theme(legend.position = 'none', panel.grid.major = element_blank(), panel.grid.minor = element_blank())
-
-hist(df_cleaned$X.VT.normalized, breaks = 50)
-hist(df_cleaned$X.APAR.normalized, breaks = 50)
-hist(df_cleaned$X.SM.normalized, breaks = 50)
-
-
-hist(df_cleaned$CTRL.VT.normalized, breaks = 50)
-hist(df_cleaned$CTRL.APAR.normalized, breaks = 50)
-hist(df_cleaned$CTRL.SM.normalized, breaks = 50)
-
-ggplot() +
-  geom_point(data = sm_limited, aes(x = Longitude, y = Latitude, color = X.APAR.normalized), shape = 15, size = 0.33) +
-  facet_grid(Year ~ Treatment)
-
-range(sm_limited$X.APAR.normalized)
-range(sm_limited$X.VT.normalized)
-range(sm_limited$X.SM.normalized)
-
-
-
-key_colors <- sm_limited %>%
-  select(delta.RGB, X.VT.normalized, X.APAR.normalized, X.SM.normalized) %>%
-  distinct() %>%
-  head(100)  # optional: limit to 100 points for display
-
-ggplot(key_colors, aes(x = X.APAR.normalized, y = X.VT.normalized, fill = delta.RGB)) +
-  geom_tile(color = "lightgray", linewidth = 0.3) +
-  scale_fill_identity() +
-  labs(x = "green (APAR)", y = "red (VT)") +
-  facet_wrap(~X.SM.normalized, nrow = 1)
-```
-
-
-
-
-
-
-
-
-## THETA BUCKET MAPS
-
-```{r}
-require(geosphere)
-theta_bucket_maps <- ctrl_17 %>% select(Latitude, Longitude, X)
-
-calculate_polar <- function(lat, lon) {
-  r <- distHaversine(c(-81.21869, 37.57799), c(lon, lat))
-  theta <- atan2(lat - 37.57799, lon - -81.21869)
-  return(c(r, theta))}
-
-theta_bucket_maps <- theta_bucket_maps %>% rowwise() %>%
-  mutate(polar = list(calculate_polar(Latitude, Longitude)),
-         r = polar[1],
-         theta = polar[2]) %>%
-  select(-polar)
-theta_bucket_maps <- theta_bucket_maps %>% mutate(theta_bucket = case_when(theta >= 0 & theta < pi/4 ~ "Bucket 1",
-                                                                           theta >= pi/4 & theta < pi/2 ~ "Bucket 2",
-                                                                           theta >= pi/2 & theta < 3*pi/4 ~ "Bucket 3",
-                                                                           theta >= 3*pi/4 & theta <= pi ~ "Bucket 4",
-                                                                           theta < -3*pi/4 & theta >= -pi ~ "Bucket 5",
-                                                                           theta < -pi/2 & theta >= -3*pi/4 ~ "Bucket 6",
-                                                                           theta < -pi/4 & theta >= -pi/2 ~ "Bucket 7",
-                                                                           theta < 0 & theta >= -pi/4 ~ "Bucket 8"))
-
-
-theta_buckets_graph <- ggplot() +
-  geom_point(data = theta_bucket_maps, aes(x = Longitude, y = Latitude, color = theta_bucket), shape = 15, size = 1.2) +
-  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
-  scale_x_continuous(breaks = c(-80, -82.5)) +
-  scale_y_continuous(breaks = c(37, 38.5)) +
-  theme_test() +
-  labs(x = NULL, y = NULL, color = "Theta Bucket") +
-  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
-  theme(axis.text = element_text(size = 16, face = "bold"), plot.title = element_text(size = 16), legend.position = "bottom", legend.text = element_text(size = 12), legend.title = element_text(size = 12)) +
-  guides(color = guide_legend(nrow = 2, override.aes = list(size = 5)))
-
-ggsave("~/Desktop/theta_buckets.pdf", theta_buckets_graph, width = 6, height = 6, units = "in")
-```
-
-
-
-
-
-## New Figure 5) Windspeeds
-
-```{r}
-inside_luc1.17 <- read.csv("CSVs/July2025_17.001_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 1)
-inside_luc2.17 <- read.csv("CSVs/July2025_17.002_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 2)
-inside_luc3.17 <- read.csv("CSVs/July2025_17.003_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 3)
-inside_luc4.17 <- read.csv("CSVs/July2025_17.004_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 4)
-inside_luc5.17 <- read.csv("CSVs/July2025_17.005_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 5)
-inside_luc6.17 <- read.csv("CSVs/July2025_17.006_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 6)
-inside_luc1.18 <- read.csv("CSVs/July2025_18.001_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 1)
-inside_luc2.18 <- read.csv("CSVs/July2025_18.002_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 2)
-inside_luc3.18 <- read.csv("CSVs/July2025_18.003_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 3)
-inside_luc4.18 <- read.csv("CSVs/July2025_18.004_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 4)
-inside_luc5.18 <- read.csv("CSVs/July2025_18.005_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 5)
-inside_luc6.18 <- read.csv("CSVs/July2025_18.006_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 6)
-
-inside <- bind_rows(inside_luc1.17, inside_luc2.17, inside_luc3.17, inside_luc4.17, inside_luc5.17, inside_luc6.17,
-                    inside_luc1.18, inside_luc2.18, inside_luc3.18, inside_luc4.18, inside_luc5.18, inside_luc6.18)
-
-wind_data <- inside %>% group_by(year, treatment) %>% summarize(before_u = mean(Mean_CTRL_U),
-                                                                before_v = mean(Mean_CTRL_V),
-                                                                after_u = mean(Mean_t00X_U),
-                                                                after_v = mean(Mean_t00X_V),
-                                                                before_Windspeed = sqrt(before_u^2 + before_v^2),
-                                                                after_Windspeed = sqrt(after_u^2 + after_v^2),
-                                                                before_Wind_direction = atan(before_v/before_u),
-                                                                after_Wind_direction = atan(after_v/after_u)) %>% ungroup()
-
-avg_wind_data <- wind_data %>% group_by(year) %>% summarize(before_Windspeed = mean(before_Windspeed),
-                                                            after_Windspeed = mean(after_Windspeed),
-                                                            before_Wind_direction = mean(before_Wind_direction),
-                                                            after_Wind_direction = mean(after_Wind_direction))
-windspeed_plot <- ggplot(data = wind_data) + 
-  geom_point(aes(x = before_u, y = before_v, color = factor(treatment))) +
-  geom_point(aes(x = after_u, y = after_v, color = factor(treatment))) +
-  geom_segment(arrow = arrow(length = unit(0.2, "cm")), aes(x = before_u, y = before_v, xend = after_u, yend = after_v, color = factor(treatment))) +
-  xlim(0.64, 1.4) +
-  ylim(0.54, 1.3) +
-  facet_wrap(~ year, nrow = 2, strip.position = "right") +
-  theme_bw() +
-  labs(x = "U (m/s)", y = "V (m/s)") +
-  scale_color_viridis_d(name = "Treatment") +
-  coord_fixed() +
-  theme(legend.position = "bottom")
-  #labs(title = expression(Delta * "Windspeed (m/s)"))
-
-ggsave("~/Desktop/windspeed_plot.pdf", windspeed_plot, width = 3, height = 4.5, units = "in")
-```
-
-
-
-
-REMOVED FROM ABOVE:
-windspeed_plot <- ggplot(data = wind_data) + 
-  geom_point(aes(x = before_u, y = before_v, fill = factor(year)), size = 3, shape = 21) +
-  geom_point(aes(x = after_u, y = after_v, fill = factor(year)), size = 3, shape = 21) +
-  geom_segment(arrow = arrow(length = unit(0.2, "cm")), aes(x = before_u, y = before_v, xend = after_u, yend = after_v, color = factor(treatment))) +
-  xlim(0.64, 1.4) +
-  ylim(0.54, 1.3) +
-  #facet_wrap(~ year, nrow = 2, strip.position = "right") +
-  theme_bw() +
-  labs(x = "U (m/s)", y = "V (m/s)") +
-  scale_color_scico_d(name = "Treatment", palette = "hawaii") +
-  scale_fill_manual(name = "Year", values = c("2017" = "red", "2018" = "lightblue")) +
-  coord_fixed() +
-  theme(legend.position = "bottom")
-  #labs(title = expression(Delta * "Windspeed (m/s)"))
-
-
-
-
-## DEFORESTATION DOT PLOT ##
-
-```{r}
-make_awful_table_def <- function(fit, var){
-  cf  <- summary(fit)$coefficients
-  idx <- grep("r_km:theta_bucket", rownames(cf))
-  trm <- rownames(cf)[idx]
-  data.frame(theta_bucket = sub(".*theta_bucketbucket([^:]+):.*", "\\1", trm),
-             variable = var,
-             year = sub(".*as\\.factor\\(year\\)([0-9]+)$", "\\1", trm),
-             treatment = sub(".*as\\.factor\\(treatment\\)([0-9]+).*", "\\1", trm),
-             p_val = cf[idx, 4],
-             slope = cf[idx, 1],
-             row.names = NULL)
-}
-
-def_GT.mods <- make_awful_table_def(def_glm_GT, "GT")
-def_VPD.mods <- make_awful_table_def(def_glm_VPD, "VPD")
-def_SW.mods <- make_awful_table_def(def_glm_SW, "SW")
-def_SM.mods <- make_awful_table_def(def_glm_SM, "SM")
-def_ET.mods <- make_awful_table_def(def_glm_ET, "ET")
-def_PRCP.mods <- make_awful_table_def(def_glm_PRCP, "PRCP")
-def_W.mods <- make_awful_table_def(def_glm_W, "W")
-
-all_def_mods_table <- bind_rows(def_GT.mods, def_VPD.mods, def_SW.mods, def_SM.mods, def_ET.mods, def_PRCP.mods, def_W.mods)
-
-range(def_GT.mods$slope) #-0.064, 0.064
-range(def_VPD.mods$slope) #-5.64, 5.64
-range(def_SW.mods$slope) #-0.17, 0.17
-range(def_SM.mods$slope) #-0.0013, 0.0013
-range(def_ET.mods$slope) #-4.12e-07, 4.12e-07
-range(def_PRCP.mods$slope) #-0.042, 0.042
-range(def_W.mods$slope) #-0.0013, 0.0013
-
-
-mods_graph_legend_labels <- c("GT" = "GT", "VPD" = "VPD", "ET" = "ET", "SM" = "SM", "SW" = "SW", "PRCP" = "PRCP", "W" = "W")
-
-#var_temp <- all_mods_table$variable == "SM"
-#range(all_mods_table$slope[var_temp])
-
-scico_lims <- list("GT" = c(-0.064, 0.064),
-                   "VPD" = c(-5.64, 5.64),
-                   "ET" = c(-4.12e-07, 4.12e-07),
-                   "SM" = c(-0.0006, 0.0006),
-                   "SW" = c(-0.17, 0.17),
-                   "PRCP" = c(-0.042, 0.042),
-                   "W" = c(-0.0013, 0.0013))
-
-scico_breaks <- list("GT" = c(-0.03, 0.03),
-                   "VPD" = c(-2.5, 2.5),
-                   "ET" = c(-2e-07, 2e-07),
-                   "SM" = c(-0.0003, 0.0003),
-                   "SW" = c(-0.1, 0.1),
-                   "PRCP" = c(-0.021, 0.021),
-                   "W" = c(-0.0007, 0.0007))
-
-
-mods_graph <- ggplot()
-for (g in unique(all_def_mods_table$variable)) {
-  df <- all_def_mods_table %>% filter(variable == g)
-  mods_graph <- mods_graph + new_scale_color() + geom_point(data = df, aes(x = treatment, y = theta_bucket, color = slope, size = pmin(-log10(p_val), 10))) +
-  scale_color_scico(palette = "vik", name = paste(mods_graph_legend_labels[g]), direction = -1, limits = scico_lims[[g]], breaks = scico_breaks[[g]])
-}
-save_mods_graph <- mods_graph + 
-  facet_grid(year ~ variable) +
-  theme_bw() +
-  coord_fixed(ratio = 0.75) +
-  labs(x = "LC Scenario", y = "Theta Bucket") +
-  theme(legend.position = "bottom", legend.key.width = unit(0.62, "cm"), strip.text = element_text(size = 16))
-
-#ggsave("~/Desktop/Def_dotplot3.pdf", save_mods_graph, width = 17, height = 6.5, units = "in")
-
-
-
-
-```
-
-
-
-
-## FIGS 6, 7, 8, 9, & 12) Predictor: where you are in the control space relative to the average || On the Y: the delta value
-
-```{r}
-range(outside_filtered$delta_VPD_t00X) ## -93, 93
-range(outside_filtered$delta_VT_t00X) ## -0.91, 0.91
-range(outside_filtered$delta_SMOIS_t00X) ## -0.03, 0.03 ## -0.032, 0.032
-range(outside_filtered$delta_APAR_t00X) ## -4.60, 4.60
-range(outside_filtered$delta_PSN_t00X) ## -0.91, 0.91 ## -0.98, 0.98
-
-X.VPD <- ggplot() +
-  geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_VPD_t00X), shape = 15, size = 0.33) +
-  scale_color_scico(palette = "vik", name = expression("VPD (Pa)"), limits = range(c(-93, 93))) +
-  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
-  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
-  scale_x_continuous(breaks = c(-80, -82.5)) +
-  scale_y_continuous(breaks = c(37, 38.5)) +
-  theme_test() +
-  facet_grid(year ~ treatment) +
-  labs(x = NULL, y = NULL) +
-  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
-  #standardized_theme +
-  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "bottom")
-
-X.VT <- ggplot() +
-  geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_VT_t00X), shape = 15, size = 0.33) +
-  scale_color_scico(palette = "vik", name = expression("Veg Temp (K)"), limits = range(c(-0.91, 0.91))) +
-  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
-  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
-  scale_x_continuous(breaks = c(-80, -82.5)) +
-  scale_y_continuous(breaks = c(37, 38.5)) +
-  theme_test() +
-  facet_grid(year ~ treatment) +
-  labs(x = NULL, y = NULL) +
-  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
-  #standardized_theme +
-  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "bottom")
-
-X.SM <- ggplot() +
-  geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_SMOIS_t00X), shape = 15, size = 0.33) +
-  scale_color_scico(palette = "vik", name = expression("SM (m3/m3)"), limits = range(c(-0.032, 0.032)), breaks = (c(-0.015, 0.015))) +
-  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
-  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
-  scale_x_continuous(breaks = c(-80, -82.5)) +
-  scale_y_continuous(breaks = c(37, 38.5)) +
-  theme_test() +
-  facet_grid(year ~ treatment) +
-  labs(x = NULL, y = NULL) +
-  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
-  #standardized_theme +
-  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "bottom")
-
-X.APAR <- ggplot() +
-  geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_APAR_t00X), shape = 15, size = 0.33) +
-  scale_color_scico(palette = "vik", name = expression("APAR (W/m2/)"), limits = range(c(-4.60, 4.60))) +
-  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
-  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
-  scale_x_continuous(breaks = c(-80, -82.5)) +
-  scale_y_continuous(breaks = c(37, 38.5)) +
-  theme_test() +
-  facet_grid(year ~ treatment) +
-  labs(x = NULL, y = NULL) +
-  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
-  #standardized_theme +
-  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "bottom")
-
-full_6789 <- ggarrange(X.APAR, X.VT, X.VPD, X.SM, ncol = 1)
-
-ggsave("~/Desktop/full.pdf", full_6789, width = 12, height = 18, units = "in")
-
-
-X.GPP <- ggplot() +
-  geom_point(data = outside_filtered, aes(x = Longitude, y = Latitude, color = delta_PSN_t00X), shape = 15, size = 0.33) +
-  scale_color_scico(palette = "vik", name = expression("GPP (umol co2/m2/s)"), limits = range(c(-0.98, 0.98))) +
-  geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
-  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
-  scale_x_continuous(breaks = c(-80, -82.5)) +
-  scale_y_continuous(breaks = c(37, 38.5)) +
-  theme_test() +
-  facet_grid(year ~ treatment) +
-  labs(x = NULL, y = NULL) +
-  coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
-  #standardized_theme +
-  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "bottom")
-
-#ggsave("~/Desktop/outside_filtered/X.VPD.pdf", X.VPD, width = 12, height = 4.5, units = "in")
-#ggsave("~/Desktop/outside_filtered/X.VT.pdf", X.VT, width = 12, height = 4.5, units = "in")
-#ggsave("~/Desktop/outside_filtered/X.SM.pdf", X.SM, width = 12, height = 4.5, units = "in")
-#ggsave("~/Desktop/outside_filtered/X.APAR.pdf", X.APAR, width = 12, height = 4.5, units = "in")
-#ggsave("~/Desktop/outside_filtered/X.GPP.pdf", X.GPP, width = 12, height = 4.5, units = "in")
-```
-
-
-
-
-## MODEL CODE
-
-```{r}
-# FIRST ORDER OF BUSINESS: COMBINE ALL THE DATAFRAMES, INCLUDING INFO RELATED TO SOIL TYPE, ELEVATION, ETC.
-```
 
