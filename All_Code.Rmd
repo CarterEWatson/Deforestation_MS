@@ -174,7 +174,7 @@ full_table2 <- full_table %>% mutate(Latitude = round(Latitude, 4), Longitude = 
 inside <- inside %>% mutate(Latitude = round(Latitude, 4), Longitude = round(Longitude, 4))
 
 inside <- full_join(inside, full_table2, by = c("Latitude", "Longitude"))
-inside <- inside %>% filter(!is.na(Mean_CTRL_ET))
+inside <- inside %>% filter(!is.na(Mean_CTRL_ET)) %>% filter(Mean_CTRL_PSN > 2)
 
 ## CREATING NORM() REGRESSIONS
 inside <- inside %>% mutate(normalized_ctrl_SW = Mean_CTRL_SWDOWN / mean(Mean_CTRL_SWDOWN, na.rm = TRUE) - 1,
@@ -257,7 +257,7 @@ inside_004 <- st_within(outside_sf, mask004_sf, sparse = FALSE)[,1]
 
 keep_point <- case_when(outside_sf$treatment == 3 ~ !inside_003, outside_sf$treatment == 4 ~ !inside_004, TRUE ~ TRUE)
 outside_sf <- outside_sf %>% ungroup()
-outside_filtered <- outside_sf[keep_point, ] %>% mutate(Longitude = st_coordinates(.)[,1], Latitude = st_coordinates(.)[,2]) %>% st_drop_geometry() %>% filter(delta_VT_t00X <= 1, delta_VT_t00X >= -1)
+outside_filtered <- outside_sf[keep_point, ] %>% mutate(Longitude = st_coordinates(.)[,1], Latitude = st_coordinates(.)[,2]) %>% st_drop_geometry() %>% filter(delta_VT_t00X <= 1, delta_VT_t00X >= -1) %>% filter(Mean_CTRL_PSN > 2) %>% filter(Mean_t00X_PSN > 2)
 
 rm(mask003, mask003_sf, mask004, mask004_sf, outside_sf)
 
@@ -325,16 +325,8 @@ outside_filtered <- outside_filtered %>% mutate(normalized_ctrl_GPP = Mean_CTRL_
 ## Import CSVs with complete CTRL data
 
 ```{r import_data}
-## FULL CTRL DATA ##
-## (1) Mean_CTRL_VT >= 273 (done in RDS to CSV script)
-## (2) PSN > 2 (done below)
-## SO, AFTER REMOVING "FROZEN," "DEAD" POINTS:
-
-ctrl_17 <- read.csv("./data/csvs/all_points/December2025_17.001_all_points.csv") %>% filter(Mean_CTRL_PSN > 2)
-ctrl_18 <- read.csv("./data/csvs/all_points/December2025_18.001_all_points.csv") %>% filter(Mean_CTRL_PSN > 2)
-
-
-
+ctrl_17 <- read.csv("./data/csvs/csvs_for_revision/May2026_17.001_all_points.csv") %>% filter(Mean_CTRL_PSN > 2)
+ctrl_18 <- read.csv("./data/csvs/csvs_for_revision/May2026_18.001_all_points.csv") %>% filter(Mean_CTRL_PSN > 2)
 ```
 
 
@@ -406,10 +398,13 @@ SynopticDomainMap <- ggplot() +
   geom_sf(data = great_circle_sf, color = "darkblue", alpha = 0.5, linewidth = 1.5) +
   geom_sf(data = green_great_circle_sf, color = "darkgreen", alpha = 0.5, linewidth = 1.5) +
   geom_sf(data = selected_states2, fill = "NA", color = "black", linewidth = 0.2) +
+  scale_x_continuous(breaks = c(-90, -80)) +
+  scale_y_continuous(breaks = c(30, 45)) +
   theme_test() +
+  labs(title = "Parent & Focal Domain") +
   guides(fill = "none") +
   standardized_theme
-rm(clipped_physiographic2, combined_regions2, great_circle_lines, great_circle_sf, green_great_circle_lines, green_great_circle_sf, inside_regions2, inside_syn_regions, outside_regions2, outside_syn_regions, selected_states2, syn_box_coords, syn_box_df, syn_box_polygon, inside_colors2, inside_palette2, inside_syn_colors, inside_syn_palette, outside_colors2, create_great_circle, outside_palette2)
+#rm(clipped_physiographic2, combined_regions2, great_circle_lines, great_circle_sf, green_great_circle_lines, green_great_circle_sf, inside_regions2, inside_syn_regions, outside_regions2, outside_syn_regions, selected_states2, syn_box_coords, syn_box_df, syn_box_polygon, inside_colors2, inside_palette2, inside_syn_colors, inside_syn_palette, outside_colors2, create_great_circle, outside_palette2)
 
 nc_whatever_for_landuse <- nc_open("./data/netCDF_files/wrfout_2017_control_domain.nc")
 lat <- ncvar_get(nc_whatever_for_landuse, "XLAT")
@@ -439,7 +434,7 @@ full_table <- data.frame(
   ELEVATION = as.vector(elevation),
   SOIL_TYPE = as.vector(soil_type))
 nc_close(nc_whatever_for_landuse)
-rm(lat, lon, landuse, elevation, soil_type)
+#rm(lat, lon, landuse, elevation, soil_type)
 full_table <- full_table %>%
   mutate(SOIL_TYPE = ifelse(SOIL_TYPE %in% c(2,8,11,14,16), 1, SOIL_TYPE)) %>% 
   mutate(SOIL_TYPE = recode(SOIL_TYPE, '1' = "Other", '3' = "Sandy Loam", '4' = "Silt Loam", '6' = "Loam")) %>% 
@@ -464,8 +459,10 @@ land_use <- ggplot() +
   geom_sf(data = combined_regions, color = "black", linewidth = 0.1, alpha = 0) + 
   geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
   theme_test() +
-  labs(x = NULL, y = NULL) +
+  labs(x = NULL, y = NULL, title = "Land Use") +
   coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
   standardized_theme +
   theme(legend.position = "bottom", legend.key.size = unit(0.4, "cm"), 
   legend.text = element_text(size = 8)) +
@@ -476,8 +473,10 @@ elevation <- ggplot() +
   geom_sf(data = combined_regions, color = "red", linewidth = 0.5, alpha = 0) + 
   geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
   theme_test() +
-  labs(x = NULL, y = NULL) +
+  labs(x = NULL, y = NULL, title = "Elevation") +
   coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
   standardized_theme +
   theme(legend.position = "bottom", legend.key.size = unit(0.4, "cm"),
   legend.text = element_text(size = 8))
@@ -490,21 +489,205 @@ soil_type <- ggplot() +
   geom_sf(data = combined_regions, color = "black", linewidth = 0.1, alpha = 0) + 
   geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
   theme_test() +
-  labs(x = NULL, y = NULL) +
+  labs(x = NULL, y = NULL, title = "Soil Types") +
   coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
-  theme(legend.position = "bottom", legend.key.size = unit(0.4, "cm"), 
-  legend.text = element_text(size = 8)) +
+  scale_x_continuous(breaks = c(-80, -82.5)) +
+  scale_y_continuous(breaks = c(37, 38.5)) +
+  theme(legend.position = "bottom", legend.key.size = unit(0.4, "cm"), legend.text = element_text(size = 8), plot.title = element_text(hjust = 0.5, face="bold")) +
   guides(color = guide_legend(nrow = 1, override.aes = list(size = 5)))
 
-figs_234 <- ggarrange(elevation, soil_type, land_use, nrow = 1, ncol = 3, align = "hv")
+#figs_234 <- ggarrange(elevation, soil_type, land_use, nrow = 1, ncol = 3, align = "hv")
+
+
+fig_1 <- ggarrange(SynopticDomainMap, land_use, elevation, soil_type, nrow = 2, ncol = 2, labels = c("(A)", "(B)", "(C)", "(D)"))
+ggsave("~/Desktop/fig_1.pdf", fig_1, width = 9.5, height = 9.5, units = "in")
+
+
 #ggsave("2figs_234.pdf", figs_234, width = 15, height = 7, units = "in")
-rm(lat, lon, landuse, land_use, MODISpoints, elevation, full_table, nc_whatever_for_landuse, soil_type)
+#rm(lat, lon, landuse, land_use, MODISpoints, elevation, full_table, nc_whatever_for_landuse, soil_type)
 ```
 
 
 ## New Figure 2)
 
 ```{r}
+PCO2 <- 39.5     ## CO2 in Pa (39.5 Pa = 395 ppm from MP table)
+Psfc <- 100000   ## Surface air pressure in Pa (100000 Pa = 1 atm)
+C3psn <- 1.0     ## C3 photosynthesis (1.0 for C3, 0.0 for C4)
+PO2 <- 20900     ## Oxygen partial pressure in Pa (from MP table)
+KC25 <- 30.0       ## Michaelis constant for CO2 at 25°C in Pa (from MP table)
+KC10 <- 2.1        ## Michaelis Q10 for CO2 (from MP table)
+KO25 <- 30000      ## Michaelis constant for O2 at 25°C in Pa (from MP table)
+KO10 <- 1.2        ## Michaelis Q10 for O2 (from MP table)
+temp_range <- seq(0, 50, by = 1)  ## From 0 to 50°C... shouldn't be any warmer than that.
+Sppf <- 4.6 * 1:3 *40 ## as high as 280, but for illustrative purposes, 120 W/m^2 is as high as we need to go
+QE25 <- 0.060      
+Beta_sm<-1:3/3 ## ranges from no moisture stress to 1/3 to 2/3 of maximum moisture stress
+
+##################################
+####### Light Limited Rate #######
+##################################
+
+light_limited <- function(Je, PCO2init, PcCO2, C3psn) {
+  ((max(PCO2init - PcCO2, 0) * Je) / (PCO2init + 2*PcCO2)) * C3psn + Je * (1 - C3psn)}
+
+light_limited_values <- numeric(length(temp_range))
+
+light_limited_df_old <- data.frame(Temp = temp_range)
+light_limited_df_new <- data.frame(Temp = temp_range)
+
+for(h in 1:length(Sppf)){
+  for (i in 1:length(temp_range)) {
+    Je <- Sppf[h] * QE25
+    Temp <- temp_range[i]
+    KC <- KC25 * KC10^((Temp - 25) / 10)
+    KO <- KO25 * KO10^((Temp - 25) / 10)
+    PcCO2 <- 0.5 * (KC / KO) * PO2 * 0.21
+    PCO2init <- 0.7 * PCO2 * C3psn + 0.4 * PCO2 * (1 - C3psn)
+    light_limited_values[i] <- light_limited(Je, PCO2init, PcCO2, C3psn)}
+  light_limited_df_old[[paste0("LIGHT_",Sppf[h]/4.6)]] <- light_limited_values
+  light_limited_df_new[[paste0("LIGHT_",Sppf[h]/4.6)]] <- light_limited_values
+}
+
+#light_limited_df_old <- light_limited_df %>% pivot_longer(cols = c("40", "80", "120"), names_to = "Light", values_to = "Light_Limitation") %>% mutate(params = "old")
+#light_limited_df_new <- light_limited_df %>% pivot_longer(cols = c("40", "80", "120"), names_to = "Light", values_to = "Light_Limitation") %>% mutate(params = "new")
+
+light_limited_df_old <- light_limited_df_old %>% mutate(params = "old")
+light_limited_df_new <- light_limited_df_new %>% mutate(params = "new")
+
+
+light_limited_df <- full_join(light_limited_df_old, light_limited_df_new, by = c("Temp", "params", "LIGHT_40", "LIGHT_80", "LIGHT_120"))
+
+
+## ORIGINAL PARAMETERS ##
+old_Vcmax25 <- 60
+old_Vcmax10 <- 2.4
+new_Vcmax25 <- 43
+new_Vcmax10 <- 3.4
+
+
+####################################
+##### Rubisco Limited Rate #####
+####################################
+
+rub_limited <- function(Vcmax, PCO2init, PcCO2, Fwc, C3psn) {
+  ((max(PCO2init - PcCO2, 0) * Vcmax) / (PCO2init + Fwc)) * C3psn + Vcmax * (1 - C3psn)}
+
+old_rub_limited_values <- numeric(length(temp_range))
+new_rub_limited_values <- numeric(length(temp_range))
+
+old_rub_limited_df <- data.frame(Temp = temp_range)
+new_rub_limited_df <- data.frame(Temp = temp_range)
+
+for(h in 1:length(Beta_sm)){
+  
+  for (i in 1:length(temp_range)) {
+    Temp <- temp_range[i]
+    KC <- KC25 * KC10^((Temp - 25) / 10)
+    KO <- KO25 * KO10^((Temp - 25) / 10)
+    PcCO2 <- 0.5 * (KC / KO) * PO2 * 0.21
+    PCO2init <- 0.7 * PCO2 * C3psn + 0.4 * PCO2 * (1 - C3psn)
+    Fwc <- KC * (1 + (PO2 / KO))
+    old_Vcmax <- old_Vcmax25 * 1 * Beta_sm[h] * ((old_Vcmax10^((Temp - 25) / 10)) / (1 + exp((-2.2 * 10^5 + 710 * (Temp + 273.16)) / (8.314 * (Temp + 273.16)))))
+    new_Vcmax <- new_Vcmax25 * 1 * Beta_sm[h] * ((new_Vcmax10^((Temp - 25) / 10)) / (1 + exp((-2.2 * 10^5 + 710 * (Temp + 273.16)) / (8.314 * (Temp + 273.16)))))
+    old_rub_limited_values[i] <- rub_limited(old_Vcmax, PCO2init, PcCO2, Fwc, C3psn)
+    new_rub_limited_values[i] <- rub_limited(new_Vcmax, PCO2init, PcCO2, Fwc, C3psn)}
+  old_rub_limited_df[[paste0("RUB_SM_",round(Beta_sm[h],2))]] <- old_rub_limited_values
+  new_rub_limited_df[[paste0("RUB_SM_",round(Beta_sm[h],2))]] <- new_rub_limited_values
+}
+
+#old_rub_limited_df <- old_rub_limited_df %>% pivot_longer(cols = c("0.33", "0.67", "1"), names_to = "Beta_sm", values_to = "Rub_Limitation") %>% mutate(params = "old")
+#new_rub_limited_df <- new_rub_limited_df %>% pivot_longer(cols = c("0.33", "0.67", "1"), names_to = "Beta_sm", values_to = "Rub_Limitation") %>% mutate(params = "new")
+
+old_rub_limited_df <- old_rub_limited_df %>% mutate(params = "old")
+new_rub_limited_df <- new_rub_limited_df %>% mutate(params = "new")
+
+
+rub_limited_df <- full_join(old_rub_limited_df, new_rub_limited_df, by = c("Temp", "params", "RUB_SM_0.33", "RUB_SM_0.67", "RUB_SM_1"))
+
+
+###################################
+##### Export Limited Rate #####
+###################################
+old_exp_limited_values <- numeric(length(temp_range))
+new_exp_limited_values <- numeric(length(temp_range))
+old_exp_limited_df <- data.frame(Temp = temp_range)
+new_exp_limited_df <- data.frame(Temp = temp_range)
+
+export_limited <- function(Vcmax, PCO2init, Psfc, C3psn) {
+  0.5 * Vcmax * C3psn + 4000 * Vcmax * (PCO2init/Psfc) * (1-C3psn)}
+
+for(h in 1:length(Beta_sm)){
+  
+  for (i in 1:length(temp_range)) {
+    Temp <- temp_range[i]
+    KC <- KC25 * KC10^((Temp - 25) / 10)
+    KO <- KO25 * KO10^((Temp - 25) / 10)
+    PcCO2 <- 0.5 * (KC / KO) * PO2 * 0.21
+    PCO2init <- 0.7 * PCO2 * C3psn + 0.4 * PCO2 * (1 - C3psn)
+    Fwc <- KC * (1 + (PO2 / KO))
+    old_Vcmax <- old_Vcmax25 * Beta_sm[h] * 0.9 * ((old_Vcmax10^((Temp - 25) / 10)) / (1 + exp((-2.2 * 10^5 + 710 * (Temp + 273.16)) / (8.314 * (Temp + 273.16)))))
+    new_Vcmax <- new_Vcmax25 * Beta_sm[h] * 0.9 * ((new_Vcmax10^((Temp - 25) / 10)) / (1 + exp((-2.2 * 10^5 + 710 * (Temp + 273.16)) / (8.314 * (Temp + 273.16)))))
+    old_exp_limited_values[i] <- export_limited(old_Vcmax, PCO2init, Psfc, C3psn)
+    new_exp_limited_values[i] <- export_limited(new_Vcmax, PCO2init, Psfc, C3psn)}
+  old_exp_limited_df[[paste0("EXP_SM_",round(Beta_sm[h],2))]] <- old_exp_limited_values
+  new_exp_limited_df[[paste0("EXP_SM_",round(Beta_sm[h],2))]] <- new_exp_limited_values
+}
+
+#old_exp_limited_df <- old_exp_limited_df %>% pivot_longer(cols = c("0.33", "0.67", "1"), names_to = "Beta_sm", values_to = "Exp_Limitation") %>% mutate(params = "old")
+#new_exp_limited_df <- new_exp_limited_df %>% pivot_longer(cols = c("0.33", "0.67", "1"), names_to = "Beta_sm", values_to = "Exp_Limitation") %>% mutate(params = "new")
+
+old_exp_limited_df <- old_exp_limited_df %>% mutate(params = "old")
+new_exp_limited_df <- new_exp_limited_df %>% mutate(params = "new")
+
+exp_limited_df <- full_join(old_exp_limited_df, new_exp_limited_df, by = c("Temp", "params", "EXP_SM_0.33", "EXP_SM_0.67", "EXP_SM_1"))
+
+photosynthetic_rate_df <- left_join(rub_limited_df, exp_limited_df, by = c("Temp", "params"))
+photosynthetic_rate_df <- left_join(photosynthetic_rate_df, light_limited_df, by = c("Temp", "params"))
+
+photosynthetic_rate_df2 <- photosynthetic_rate_df %>% pivot_longer(cols = c(RUB_SM_0.33, RUB_SM_0.67, RUB_SM_1), names_to = "SM_rubisco", values_to = "Rubisco_Limited") %>%
+  pivot_longer(cols = c(EXP_SM_0.33, EXP_SM_0.67, EXP_SM_1), names_to = "SM_export", values_to = "Export_Limited") %>%
+  pivot_longer(cols = c(LIGHT_40, LIGHT_80, LIGHT_120), names_to = "LIGHT", values_to = "Light_Limited") %>%
+  mutate(LIGHT = ifelse(LIGHT == "LIGHT_120", 120, LIGHT), LIGHT = ifelse(LIGHT == "LIGHT_80", 80, LIGHT), LIGHT = ifelse(LIGHT == "LIGHT_40", 40, LIGHT),
+         SM_rubisco = ifelse(SM_rubisco == "RUB_SM_0.33", "2/3", SM_rubisco), SM_rubisco = ifelse(SM_rubisco == "RUB_SM_0.67", "1/3", SM_rubisco), SM_rubisco = ifelse(SM_rubisco == "RUB_SM_1", 0, SM_rubisco),
+         SM_export = ifelse(SM_export == "EXP_SM_0.33", "2/3", SM_export), SM_export = ifelse(SM_export == "EXP_SM_0.67", "1/3", SM_export), SM_export = ifelse(SM_export == "EXP_SM_1", 0, SM_export),
+         params = ifelse(params == "old", "Old Params", params), params = ifelse(params == "new", "New Params", params))
+
+#18.785523 18.8
+#13.462958 13.5
+
+old_x_segment <- data.frame(x = c(0, 25), y = c(18.785523, 18.785523), params = "Old Params")
+old_y_segment <- data.frame(x = c(25, 25), y = c(0, 18.785523), params = "Old Params")
+old_point <- data.frame(x = 25, y = 18.785523, params = "Old Params")
+
+new_x_segment <- data.frame(x = c(0, 25), y = c(13.462958, 13.462958), params = "New Params")
+new_y_segment <- data.frame(x = c(25, 25), y = c(0, 13.462958), params = "New Params")
+new_point <- data.frame(x = 25, y = 13.462958, params = "New Params")
+
+photosynthetic_rate_df2 <- photosynthetic_rate_df2 %>% mutate(LIGHT = factor(LIGHT, levels = c(40, 80, 120)), params = factor(params, levels = c("Old Params", "New Params")))
+
+#rm(exp_limited_df, light_limited_df, light_limited_df_new, light_limited_df_old, new_exp_limited_df, new_rub_limited_df, old_exp_limited_df, old_rub_limited_df, photosynthetic_rate_df, rub_limited_df, Beta_sm, C3psn, Fwc, h, i, Je, KC, KC10, KC25, KO, KO10, KO25, light_limited_values, lty_values, lwd_values, new_exp_limited_values, new_rub_limited_values, new_Vcmax, new_Vcmax10, new_Vcmax25, old_exp_limited_values, old_rub_limited_values, old_Vcmax, old_Vcmax10, old_Vcmax25, PcCO2, PCO2, PCO2init, PO2, Psfc, QE25, Sppf, Temp, temp_range, export_limited, light_limited, rub_limited)
+
+plots1and2 <- ggplot(data = photosynthetic_rate_df2) +
+  geom_line(aes(x = Temp, y = Light_Limited, linewidth = LIGHT, color = "Light")) +
+  geom_line(aes(x = Temp, y = Export_Limited, linetype = SM_export, color = "Export"), linewidth = 1.5) +
+  geom_line(aes(x = Temp, y = Rubisco_Limited, linetype = SM_rubisco, color = "Rubisco"), linewidth = 1.5) +
+  geom_line(data = old_x_segment, aes(x = x, y = y)) +
+  geom_line(data = old_y_segment, aes(x = x, y = y)) +
+  geom_point(data = old_point, aes(x = x, y = y), size = 3.5, color = "purple") +
+  geom_line(data = new_x_segment, aes(x = x, y = y)) +
+  geom_line(data = new_y_segment, aes(x = x, y = y)) +
+  geom_point(data = new_point, aes(x = x, y = y), size = 3.5, color = "purple") +
+  scale_linetype_manual(values = c("2/3" = "dotted", "1/3" = "twodash", "0" = "solid")) +
+  scale_linewidth_manual(values = c("40" = 1.5, "80" = 3, "120" = 4.5)) +
+  facet_grid(~params) +
+  theme_bw() +
+  labs(color = "Limiting Process:", linewidth = expression("Light Intensity (W m"^{-2} * "):"), linetype = expression("SM Stress:"), x = "Temperature (°C)", y = expression(mu * "mol CO"[2] * " m"^{-2} * " s"^{-1})) +
+  theme(legend.position = "bottom", legend.text = element_text(size = 14), legend.title = element_text(size = 14), axis.title = element_text(size = 14), axis.text = element_text(size = 14), strip.text = element_text(size = 16)) +
+  guides(color = guide_legend(nrow = 2), linewidth = guide_legend(nrow = 2), linetype = guide_legend(nrow = 2))
+
+###########
+
 modis_gpp_list <- list()
 model_1_gpp_list <- list()
 model_2_gpp_list <- list()
@@ -580,14 +763,16 @@ time_plot3 <- ggplot(final_data) +
   geom_line(aes(x = time, y = average_modis_gpp, color = "MODIS"), linewidth = 0.65) +
   geom_line(aes(x = time, y = average_modeled_gpp_1, color = "Initial Param."), linewidth = 0.65) +
   geom_line(aes(x = time, y = average_modeled_gpp_2, color = "Modified Param."), linewidth = 0.65) +
-  labs(x = "Date",
-       y = expression("GPP " * "(" * kg ~ C ~ m^{-2} * " per 8 days" * ")")) +
+  labs(x = NULL, y = expression("GPP " * "(" * kg ~ C ~ m^{-2} * " per 8 days" * ")"), title = "Impact on Model GPP") +
   scale_color_manual(values = c("MODIS" = "skyblue", "Initial Param." = "tomato", "Modified Param." = "forestgreen"), name = "") +
   theme_bw() +
   xlim(as.Date("2017-01-01"), as.Date("2018-11-02")) +
   ylim(0, 0.11) +
-  theme(legend.position = "bottom")
-#ggsave("fig_2_plot_sheet.pdf", time_plot3, width = 5, height = 5, units = "in")
+  theme(legend.position = "bottom", legend.text = element_text(size = 12), axis.title = element_text(size = 14), axis.text = element_text(size = 14), plot.title = element_text(hjust = 0.5, size = 16))
+
+fig_2_plot_sheet <- ggarrange(plots1and2, time_plot3, widths = c(2,1), labels = c("(A)", "(B)"), font.label = list(size = 16))
+
+ggsave("~/Desktop/fig_2_plot_sheet.pdf", fig_2_plot_sheet, width = 15.5, height = 6.2, units = "in")
 
 ##########
 
@@ -713,11 +898,11 @@ LU_maps_plot <- ggplot() +
   labs(x = NULL, y = NULL) +
   coord_sf(xlim = c(-83.4, -79), ylim = c(36, 39.1), expand = FALSE) +
   #standardized_theme +
-  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "bottom", legend.text = element_text(size = 10)) +
+  theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "bottom", legend.text = element_text(size = 14), strip.text = element_text(size = 16)) +
   guides(color = guide_legend(override.aes = list(size = 6)))
 
 
-#ggsave("~/Desktop/FIG3_test.pdf", LU_maps_plot, width = 11.25, height = 2.5, units = "in")
+ggsave("~/Desktop/FIG3_test.pdf", LU_maps_plot, width = 11.25, height = 2.5, units = "in")
 
 
 ```
@@ -730,13 +915,8 @@ require(data.table)
 require(ggnewscale)
 require(patchwork)
 
-## FULL CTRL DATA ##
-## (1) Mean_CTRL_VT >= 273 (done in RDS to CSV script)
-## (2) PSN > 2 (done below)
-## SO, AFTER REMOVING "FROZEN," "DEAD" POINTS:
-
-ctrl_17 <- read.csv("./data/csvs/all_points/December2025_17.001_all_points.csv") %>% filter(Mean_CTRL_PSN > 2)
-ctrl_18 <- read.csv("./data/csvs/all_points/December2025_18.001_all_points.csv") %>% filter(Mean_CTRL_PSN > 2)
+ctrl_17 <- read.csv("./data/csvs/csvs_for_revision/May2026_17.001_all_points.csv") %>% filter(Mean_CTRL_PSN > 2)
+ctrl_18 <- read.csv("./data/csvs/csvs_for_revision/May2026_18.001_all_points.csv") %>% filter(Mean_CTRL_PSN > 2)
 
 fig_4_df_17 <- ctrl_17 %>% mutate(Year = 2017) %>% select(Latitude, Longitude, Year, Mean_CTRL_VT, Mean_CTRL_SMOIS, Mean_CTRL_APAR, Mean_CTRL_VPD, Mean_CTRL_PSN) %>% reshape2::melt(id.vars = c("Latitude", "Longitude", "Year"), variable.name = "variable", value.name = "value")
 fig_4_df_18 <- ctrl_18 %>% mutate(Year = 2018) %>% select(Latitude, Longitude, Year, Mean_CTRL_VT, Mean_CTRL_SMOIS, Mean_CTRL_APAR, Mean_CTRL_VPD, Mean_CTRL_PSN) %>% reshape2::melt(id.vars = c("Latitude", "Longitude", "Year"), variable.name = "variable", value.name = "value")
@@ -765,7 +945,6 @@ for (c in unique(fig_4_df$variable)) {
 }
 ctrl_plot <- ctrls +
   geom_sf(data = combined_regions, color = "grey", linewidth = 0.1, alpha = 0) + 
-  #geom_sf(data = selected_states, fill = "NA", color = "black", linewidth = 0.2) +
   scale_x_continuous(breaks = c(-80, -82.5)) +
   scale_y_continuous(breaks = c(37, 38.5)) +
   theme_test() +
@@ -775,7 +954,7 @@ ctrl_plot <- ctrls +
   theme(legend.position = "bottom", legend.key.width = unit(0.62, "cm"), axis.title.x = element_blank(), axis.title.y = element_blank())
 
 
-#ggsave("~/Desktop/new_ctrl_figure.pdf", ctrl_plot, width = 10, height = 4.5, units = "in")
+ggsave("~/Desktop/new_ctrl_figure.pdf", ctrl_plot, width = 10, height = 4.5, units = "in")
 
 
 ```
@@ -883,7 +1062,7 @@ X.APAR <- ggplot() +
 
 full_6789 <- ggarrange(X.APAR, X.VT, X.VPD, X.SM, ncol = 1)
 
-#ggsave("~/Desktop/full_corrected.pdf", full_6789, width = 14.5, height = 19, units = "in")
+ggsave("~/Desktop/full_corrected.pdf", full_6789, width = 14.5, height = 19, units = "in")
 
 average_precip_deciduous_CTRL_17 <- mean(ctrl_17$Mean_CTRL_RAINNC) * 234
 average_precip_deciduous_CTRL_18 <- mean(ctrl_18$Mean_CTRL_RAINNC) * 234
@@ -907,7 +1086,7 @@ X.GPP <- ggplot() +
   #standardized_theme +
   theme(axis.title = element_text(size = 12, face = "bold"), plot.title = element_text(size = 16), legend.position = "bottom")
 
-#ggsave("~/Desktop/X.GPP_corrected.pdf", X.GPP, width = 12, height = 4.5, units = "in")
+ggsave("~/Desktop/X.GPP_corrected.pdf", X.GPP, width = 12, height = 4.5, units = "in")
 ```
 
 
@@ -946,18 +1125,18 @@ all_mods_table_carter <- bind_rows(gpp.mod.carter.mods, sm.mod.carter.mods, vpd.
   mutate(p_val = ifelse(p_val > 0.01, NA, p_val))
 
 range(gpp.mod.carter.mods$slope) #-0.219, 0.219
-range(sm.mod.carter.mods$slope) #-0.00372, 0.00372
-range(vpd.mod.carter.mods$slope) #-33.57, 33.57
-range(vt.mod.carter.mods$slope) #-5.17, 5.17
-range(apar.mod.carter.mods$slope) #-3.51, 3.51
+range(sm.mod.carter.mods$slope) #-0.00372, 0.00372 #-0.00373, 0.00373
+range(vpd.mod.carter.mods$slope) #-33.57, 33.57 #-33.73, 33.73
+range(vt.mod.carter.mods$slope) #-5.17, 5.17 #-6.24, 6.24
+range(apar.mod.carter.mods$slope) #-3.51, 3.51 #-3.68, 3.68
 
 mods_graph_legend_labels_carter <- c("APAR" = "APAR", "GPP" = "GPP", "SM" = "SM", "VPD" = "VPD", "VT" = "VT")
 
-scico_lims_carter <- list("APAR" = c(-3.51, 3.51),
+scico_lims_carter <- list("APAR" = c(-3.68, 3.68),
                    "GPP" = c(-0.219, 0.219),
-                   "SM" = c(-0.00372, 0.00372),
-                   "VPD" = c(-33.57, 33.57),
-                   "VT" = c(-5.17, 5.17))
+                   "SM" = c(-0.00373, 0.00373),
+                   "VPD" = c(-33.73, 33.73),
+                   "VT" = c(-6.24, 6.24))
 
 scico_breaks_carter <- list("APAR" = c(-2, 0, 2),
                    "GPP" = c(-0.1, 0, 0.1),
@@ -1012,11 +1191,11 @@ def2_W.mods <- make_awful_carter_table_def2(def2_glm_W, "W")
 all_mods_table_def2 <- bind_rows(def2_GT.mods, def2_VPD.mods, def2_SW.mods, def2_SM.mods, def2_ET.mods, def2_PRCP.mods, def2_W.mods) %>% 
   mutate(p_val = ifelse(p_val > 0.01, NA, p_val))
 
-range(def2_GT.mods$slope) #-138.63, 138.63
-range(def2_VPD.mods$slope) #-281, 281
-range(def2_SW.mods$slope) #-67.03, 67.03
-range(def2_SM.mods$slope) #-0.105, 0.105
-range(def2_ET.mods$slope) #-6.95e-05, 6.95e-05
+range(def2_GT.mods$slope) #-138.63, 138.63 #-139.71, 139.71
+range(def2_VPD.mods$slope) #-281, 281 #-284.07, 284.07
+range(def2_SW.mods$slope) #-67.03, 67.03 #-66.84, 66.84
+range(def2_SM.mods$slope) #-0.105, 0.105 
+range(def2_ET.mods$slope) #-6.95e-05, 6.95e-05 #-7.45e-05, 7.45e-05
 range(def2_PRCP.mods$slope) #-0.969, 0.969
 range(def2_W.mods$slope) #-0.0110, 0.0110
 
@@ -1026,11 +1205,11 @@ mods_graph_legend_labels_def2 <- c("GT" = "GT", "VPD" = "VPD", "SW" = "SW", "SM"
 #var_temp <- all_mods_table$variable == "SM"
 #range(all_mods_table$slope[var_temp])
 
-scico_lims2 <- list("GT" = c(-138.63, 138.63),
-                   "VPD" = c(-281, 281),
-                   "SW" = c(-67.03, 67.03),
+scico_lims2 <- list("GT" = c(-139.71, 139.71),
+                   "VPD" = c(-284.07, 284.07),
+                   "SW" = c(-66.84, 66.84),
                    "SM" = c(-0.105, 0.105),
-                   "ET" = c(-6.95e-05, 6.95e-05),
+                   "ET" = c(-7.45e-05, 7.45e-05),
                    "PRCP" = c(-0.969, 0.969),
                    "W" = c(-0.0110, 0.0110))
 
@@ -1059,7 +1238,7 @@ save_mods_graph_carter_def2 <- mods_graph_carter2 +
 
 combined_S1_6 <- ggarrange(save_mods_graph_carter_def2, save_mods_graph_carter, ncol = 1)
 
-#ggsave("~/Desktop/combined_S1_6_NEW.pdf", combined_S1_6, width = 17, height = 6, units = "in")
+ggsave("~/Desktop/combined_S1_6_NEW.pdf", combined_S1_6, width = 17, height = 6, units = "in")
 
 ```
 
@@ -1110,7 +1289,7 @@ all_mods_table <- all_mods_table %>% mutate(theta_bucket2 = recode(theta_bucket,
 all_mods_table$theta_bucket2 <- factor(all_mods_table$theta_bucket2, levels = c("ENE", "NNE", "NNW", "WNW", "WSW", "SSW", "SSE", "ESE"))
 
 range(VT.mods$slope) #-0.00463, 0.00463
-range(VPD.mods$slope) #-0.828, 0.828
+range(VPD.mods$slope) #-0.828, 0.828 #-0.804, 0.804
 range(SM.mods$slope) #-0.000202, 0.000202
 range(APAR.mods$slope) #-0.0174, 0.0174
 range(GPP.mods$slope) #-0.00477, 0.00477
@@ -1121,13 +1300,13 @@ mods_graph_legend_labels <- c("APAR" = "APAR", "GPP" = "GPP", "SM" = "SM", "VPD"
 scico_lims <- list("APAR" = c(-0.0174, 0.0174),
                    "GPP" = c(-0.00477, 0.00477),
                    "SM" = c(-0.000202, 0.000202),
-                   "VPD" = c(-0.828, 0.828),
+                   "VPD" = c(-0.804, 0.804),
                    "VT" = c(-0.00463, 0.00463))
 
 scico_breaks <- list("APAR" = c(-0.01, 0.01),
                    "GPP" = c(-0.0025, 0.0025),
                    "SM" = c(-0.0001, 0.0001),
-                   "VPD" = c(-0.41, 0.41),
+                   "VPD" = c(-0.40, 0.40),
                    "VT" = c(-0.0023, 0.0023))
 
 #attenuation_intercepts <- function(fit, var){
@@ -1173,12 +1352,12 @@ save_mods_graph <- mods_graph +
 
 #, axis.title.x = element_blank(), axis.title.y = element_blank()
 
-#ggsave("~/Desktop/FIG11_NEW2.pdf", save_mods_graph, width = 14, height = 6.5, units = "in")
+ggsave("~/Desktop/FIG11_NEW2.pdf", save_mods_graph, width = 14, height = 6.5, units = "in")
 
 ```
 
 
-## BIG BEAUTIFUL PLOT (SUPPLEMENTAL FIGURE S1)
+## BIG BEAUTIFUL SECOND PLOT (SUPPLEMENTAL FIGURE S2)
 
 ```{r}
 range(outside_filtered$delta_ALBEDO_t00X)
@@ -1278,7 +1457,7 @@ X.W <- ggplot() +
 
 full_6789_supplement <- ggarrange(X.ALBEDO, X.ET, X.PRCP, X.W, ncol = 1)
 
-#ggsave("~/Desktop/full_supplement.pdf", full_6789_supplement, width = 14.5, height = 19, units = "in")
+ggsave("~/Desktop/full_supplement.pdf", full_6789_supplement, width = 14.5, height = 19, units = "in")
 ```
 
 
@@ -1292,26 +1471,33 @@ full_6789_supplement <- ggarrange(X.ALBEDO, X.ET, X.PRCP, X.W, ncol = 1)
 ## Inside Environmental Characteristics Table (Table 3)
 
 ```{r}
-inside_data <- inside %>% group_by(year, treatment) %>% summarize(before_VPD = mean(Mean_CTRL_VPD),
-                                                                  delta_VPD = mean(delta_VPD_t00X),#(mean(delta_VPD_t00X)/mean(Mean_CTRL_VPD))*100,
-                                                                  
-                                                                  before_ALBEDO = mean(Mean_CTRL_ALBEDO),
-                                                                  delta_ALBEDO = mean(delta_ALBEDO_t00X),#(mean(delta_ALBEDO_t00X)/mean(Mean_CTRL_ALBEDO))*100,
-                                                                  
-                                                                  before_SWDOWN = mean(Mean_CTRL_SWDOWN),
-                                                                  delta_SWDOWN = mean(delta_SWDOWN_t00X),#(mean(delta_SWDOWN_t00X)/mean(Mean_CTRL_SWDOWN))*100,
+inside_data <- inside %>% group_by(year, treatment) %>% summarize(before_ALBEDO = mean(Mean_CTRL_ALBEDO),
+                                                                  delta_ALBEDO = mean(delta_ALBEDO_t00X),
+                                                                  percent_ALBEDO = (mean(delta_ALBEDO_t00X)/mean(Mean_CTRL_ALBEDO))*100,
                                                                   
                                                                   before_GT = mean(Mean_CTRL_GT),
-                                                                  delta_GT = mean(delta_GT_t00X),#(mean(delta_GT_t00X)/mean(Mean_CTRL_GT))*100,
+                                                                  delta_GT = mean(delta_GT_t00X),
+                                                                  percent_GT = (mean(delta_GT_t00X)/mean(Mean_CTRL_GT))*100,
                                                                   
                                                                   before_ET = mean(Mean_CTRL_ET),
-                                                                  delta_ET = mean(delta_ET_t00X),#(mean(delta_ET_t00X)/mean(Mean_CTRL_ET))*100,
+                                                                  delta_ET = mean(delta_ET_t00X),
+                                                                  percent_ET = (mean(delta_ET_t00X)/mean(Mean_CTRL_ET))*100,
+                                                                  
+                                                                  before_SWDOWN = mean(Mean_CTRL_SWDOWN),
+                                                                  delta_SWDOWN = mean(delta_SWDOWN_t00X),
+                                                                  percent_SWDOWN = (mean(delta_SWDOWN_t00X)/mean(Mean_CTRL_SWDOWN))*100,
                                                                   
                                                                   before_RAINNC = mean(Mean_CTRL_RAINNC),
-                                                                  delta_RAINNC = mean(delta_RAINNC_t00X),#(mean(delta_RAINNC_t00X)/mean(Mean_CTRL_RAINNC))*100,
+                                                                  delta_RAINNC = mean(delta_RAINNC_t00X),
+                                                                  percent_RAINNC = (mean(delta_RAINNC_t00X)/mean(Mean_CTRL_RAINNC))*100,
                                                                   
                                                                   before_SM = mean(Mean_CTRL_SMOIS),
-                                                                  delta_SM = mean(delta_SMOIS_t00X),#(mean(delta_SMOIS_t00X)/mean(Mean_CTRL_SMOIS))*100,
+                                                                  delta_SM = mean(delta_SMOIS_t00X),
+                                                                  percent_SM = (mean(delta_SMOIS_t00X)/mean(Mean_CTRL_SMOIS))*100,
+                                                                  
+                                                                  before_VPD = mean(Mean_CTRL_VPD),
+                                                                  delta_VPD = mean(delta_VPD_t00X),
+                                                                  percent_VPD = (mean(delta_VPD_t00X)/mean(Mean_CTRL_VPD))*100,
                                                                   
                                                                   before_W = mean(Mean_CTRL_W),
                                                                   delta_W = mean(delta_W_t00X),
@@ -1320,47 +1506,79 @@ inside_data <- inside %>% group_by(year, treatment) %>% summarize(before_VPD = m
                                                                   before_WS = sqrt(mean(Mean_CTRL_U)^2 + mean(Mean_CTRL_V)^2),
                                                                   after_WS = sqrt(mean(Mean_t00X_U)^2 + mean(Mean_t00X_V)^2),
                                                                   delta_WS = after_WS - before_WS,
-                                                                  #delta_WS = ((after_WS - before_WS)/before_WS)*100,
+                                                                  percent_WS = ((after_WS - before_WS)/before_WS)*100,
                                                                   
                                                                   before_WD = atan(mean(Mean_CTRL_V)/mean(Mean_CTRL_U))*(180/pi),
                                                                   after_WD = atan(mean(Mean_t00X_V)/mean(Mean_t00X_U))*(180/pi),
                                                                   delta_WD = after_WD - before_WD) %>% ungroup()
-kable(inside_data, format = "latex", digits = 3, booktabs = TRUE)
+inside_data_transposed <- inside_data %>% mutate(treatment = paste0(year, ", ", treatment)) %>% select(-year) %>% column_to_rownames("treatment") %>% t() %>% as.data.frame()
 
-inside_data_avgs <- inside %>% group_by(year) %>% summarize(treatment = "average",
-                                                            before_VPD = mean(Mean_CTRL_VPD),
-                                                            delta_VPD = mean(delta_VPD_t00X),#(mean(delta_VPD_t00X)/mean(Mean_CTRL_VPD))*100,
-                                                            
-                                                            before_ALBEDO = mean(Mean_CTRL_ALBEDO),
-                                                            delta_ALBEDO = mean(delta_ALBEDO_t00X),#(mean(delta_ALBEDO_t00X)/mean(Mean_CTRL_ALBEDO))*100,
-                                                            
-                                                            before_SWDOWN = mean(Mean_CTRL_SWDOWN),
-                                                            delta_SWDOWN = mean(delta_SWDOWN_t00X),#(mean(delta_SWDOWN_t00X)/mean(Mean_CTRL_SWDOWN))*100,
-                                                            
-                                                            before_GT = mean(Mean_CTRL_GT),
-                                                            delta_GT = mean(delta_GT_t00X),#(mean(delta_GT_t00X)/mean(Mean_CTRL_GT))*100,
-                                                            
-                                                            before_ET = mean(Mean_CTRL_ET),
-                                                            delta_ET = mean(delta_ET_t00X),#(mean(delta_ET_t00X)/mean(Mean_CTRL_ET))*100,
-                                                            
-                                                            before_RAINNC = mean(Mean_CTRL_RAINNC),
-                                                            delta_RAINNC = mean(delta_RAINNC_t00X),#(mean(delta_RAINNC_t00X)/mean(Mean_CTRL_RAINNC))*100,
-                                                            
-                                                            before_SM = mean(Mean_CTRL_SMOIS),
-                                                            delta_SM = mean(delta_SMOIS_t00X),#(mean(delta_SMOIS_t00X)/mean(Mean_CTRL_SMOIS))*100,
-                                                            
-                                                            before_W = mean(Mean_CTRL_W),
-                                                            delta_W = mean(delta_W_t00X),#(mean(delta_W_t00X)/mean(Mean_CTRL_W))*100,
-                                                            
-                                                            before_WS = sqrt(mean(Mean_CTRL_U)^2 + mean(Mean_CTRL_V)^2),
-                                                            after_WS = sqrt(mean(Mean_t00X_U)^2 + mean(Mean_t00X_V)^2),
-                                                            delta_WS = after_WS - before_WS,
-                                                            #delta_WS = ((after_WS - before_WS)/before_WS)*100,
-                                                            
-                                                            before_WD = atan(mean(Mean_CTRL_V)/mean(Mean_CTRL_U))*(180/pi),
-                                                            after_WD = atan(mean(Mean_t00X_V)/mean(Mean_t00X_U))*(180/pi),
-                                                            delta_WD = after_WD - before_WD) %>% ungroup()
-kable(inside_data_avgs, format = "latex", digits = 7, booktabs = TRUE)
+
+inside_data_avgs <- inside %>% group_by(year) %>% summarize(treatment = "average",before_ALBEDO = mean(Mean_CTRL_ALBEDO),
+                                                                  delta_ALBEDO = mean(delta_ALBEDO_t00X),
+                                                                  percent_ALBEDO = (mean(delta_ALBEDO_t00X)/mean(Mean_CTRL_ALBEDO))*100,
+                                                                  
+                                                                  before_GT = mean(Mean_CTRL_GT),
+                                                                  delta_GT = mean(delta_GT_t00X),
+                                                                  percent_GT = (mean(delta_GT_t00X)/mean(Mean_CTRL_GT))*100,
+                                                                  
+                                                                  before_ET = mean(Mean_CTRL_ET),
+                                                                  delta_ET = mean(delta_ET_t00X),
+                                                                  percent_ET = (mean(delta_ET_t00X)/mean(Mean_CTRL_ET))*100,
+                                                                  
+                                                                  before_SWDOWN = mean(Mean_CTRL_SWDOWN),
+                                                                  delta_SWDOWN = mean(delta_SWDOWN_t00X),
+                                                                  percent_SWDOWN = (mean(delta_SWDOWN_t00X)/mean(Mean_CTRL_SWDOWN))*100,
+                                                                  
+                                                                  before_RAINNC = mean(Mean_CTRL_RAINNC),
+                                                                  delta_RAINNC = mean(delta_RAINNC_t00X),
+                                                                  percent_RAINNC = (mean(delta_RAINNC_t00X)/mean(Mean_CTRL_RAINNC))*100,
+                                                                  
+                                                                  before_SM = mean(Mean_CTRL_SMOIS),
+                                                                  delta_SM = mean(delta_SMOIS_t00X),
+                                                                  percent_SM = (mean(delta_SMOIS_t00X)/mean(Mean_CTRL_SMOIS))*100,
+                                                                  
+                                                                  before_VPD = mean(Mean_CTRL_VPD),
+                                                                  delta_VPD = mean(delta_VPD_t00X),
+                                                                  percent_VPD = (mean(delta_VPD_t00X)/mean(Mean_CTRL_VPD))*100,
+                                                                  
+                                                                  before_W = mean(Mean_CTRL_W),
+                                                                  delta_W = mean(delta_W_t00X),
+                                                                  other_delta_W = (mean(delta_W_t00X)/mean(Mean_CTRL_W))*100,
+                                                                  
+                                                                  before_WS = sqrt(mean(Mean_CTRL_U)^2 + mean(Mean_CTRL_V)^2),
+                                                                  after_WS = sqrt(mean(Mean_t00X_U)^2 + mean(Mean_t00X_V)^2),
+                                                                  delta_WS = after_WS - before_WS,
+                                                                  percent_WS = ((after_WS - before_WS)/before_WS)*100,
+                                                                  
+                                                                  before_WD = atan(mean(Mean_CTRL_V)/mean(Mean_CTRL_U))*(180/pi),
+                                                                  after_WD = atan(mean(Mean_t00X_V)/mean(Mean_t00X_U))*(180/pi),
+                                                                  delta_WD = after_WD - before_WD) %>% ungroup()
+
+inside_data_avgs_transposed <- inside_data_avgs %>% mutate(treatment = paste0(year, ", ", treatment)) %>% select(-year) %>% column_to_rownames("treatment") %>% t() %>% as.data.frame()
+
+
+inside_data_transposed_final <- bind_cols(inside_data_transposed, inside_data_avgs_transposed) %>% select("2017, 1", "2017, 2", "2017, 3", "2017, 4", "2017, 5", "2017, 6", "2017, average", "2018, 1", "2018, 2", "2018, 3", "2018, 4", "2018, 5", "2018, 6", "2018, average")
+
+
+rounding_function <- function(x) {
+  if (is.na(x) || x == 0) return("0.00")
+  first_digit_pos <- floor(log10(abs(x)))
+  if (first_digit_pos >= 0) {
+    target_decimals <- 2
+  } else {
+    sig_fig_decimals <- abs(first_digit_pos) + 1
+    target_decimals <- max(2, sig_fig_decimals)
+  }
+  formatC(x, format = "f", digits = target_decimals)
+}
+rounding_function_vec <- Vectorize(rounding_function)
+inside_data_transposed_final_formatted <- inside_data_transposed_final %>%
+  mutate(across(where(is.numeric), rounding_function_vec))
+
+
+kable(inside_data_transposed_final_formatted, format = "latex", booktabs = TRUE)
+
 ```
 
 
@@ -1404,38 +1622,72 @@ kable(inside_model_table, format = "latex", digits = 2, booktabs = TRUE)
 ## Outside Environmental Characteristics Table (Table 5)
 
 ```{r}
-outside_data <- outside_filtered %>% group_by(year, treatment) %>% summarize(before_VPD = mean(Mean_CTRL_VPD),
-                                                                             delta_VPD = mean(delta_VPD_t00X),#(mean(delta_VPD_t00X)/mean(Mean_CTRL_VPD))*100,
+outside_data <- outside_filtered %>% group_by(year, treatment) %>% summarize(before_APAR = mean(Mean_CTRL_APAR),
+                                                                             delta_APAR = mean(delta_APAR_t00X),
+                                                                             percent_APAR = (mean(delta_APAR_t00X)/mean(Mean_CTRL_APAR))*100,
                                                                              
                                                                              before_VT = mean(Mean_CTRL_VT),
-                                                                             delta_VT = mean(delta_VT_t00X),#(mean(delta_VT_t00X)/mean(Mean_CTRL_VT))*100,
+                                                                             delta_VT = mean(delta_VT_t00X),
+                                                                             percent_VT = (mean(delta_VT_t00X)/mean(Mean_CTRL_VT))*100,
                                                                              
                                                                              before_SM = mean(Mean_CTRL_SMOIS),
-                                                                             delta_SM = mean(delta_SMOIS_t00X),#(mean(delta_SMOIS_t00X)/mean(Mean_CTRL_SMOIS))*100,
+                                                                             delta_SM = mean(delta_SMOIS_t00X),
+                                                                             percent_SM = (mean(delta_SMOIS_t00X)/mean(Mean_CTRL_SMOIS))*100,
                                                                              
-                                                                             before_APAR = mean(Mean_CTRL_APAR),
-                                                                             delta_APAR = mean(delta_APAR_t00X),#(mean(delta_APAR_t00X)/mean(Mean_CTRL_APAR))*100,
+                                                                             before_VPD = mean(Mean_CTRL_VPD),
+                                                                             delta_VPD = mean(delta_VPD_t00X),
+                                                                             percent_VPD = (mean(delta_VPD_t00X)/mean(Mean_CTRL_VPD))*100,
                                                                              
                                                                              before_GPP = mean(Mean_CTRL_PSN),
-                                                                             delta_GPP = mean(delta_PSN_t00X))#(mean(delta_PSN_t00X)/mean(Mean_CTRL_PSN))*100) %>% ungroup()
-kable(outside_data, format = "latex", digits = 4, booktabs = TRUE)
+                                                                             delta_GPP = mean(delta_PSN_t00X),
+                                                                             percent_GPP = (mean(delta_PSN_t00X)/mean(Mean_CTRL_PSN))*100) %>% ungroup()
+outside_data_transposed <- outside_data %>% mutate(treatment = paste0(year, ", ", treatment)) %>% select(-year) %>% column_to_rownames("treatment") %>% t() %>% as.data.frame()
+
 
 outside_data_avgs <- outside_filtered %>% group_by(year) %>% summarize(treatment = "average",
-                                                                       before_VPD = mean(Mean_CTRL_VPD),
-                                                                       delta_VPD = mean(delta_VPD_t00X),#(mean(delta_VPD_t00X)/mean(Mean_CTRL_VPD))*100,
-                                                                       
-                                                                       before_VT = mean(Mean_CTRL_VT),
-                                                                       delta_VT = mean(delta_VT_t00X),#(mean(delta_VT_t00X)/mean(Mean_CTRL_VT))*100,
-                                                                       
-                                                                       before_SM = mean(Mean_CTRL_SMOIS),
-                                                                       delta_SM = mean(delta_SMOIS_t00X),#(mean(delta_SMOIS_t00X)/mean(Mean_CTRL_SMOIS))*100,
                                                                        
                                                                        before_APAR = mean(Mean_CTRL_APAR),
-                                                                       delta_APAR = mean(delta_APAR_t00X),#(mean(delta_APAR_t00X)/mean(Mean_CTRL_APAR))*100,
+                                                                       delta_APAR = mean(delta_APAR_t00X),
+                                                                       percent_APAR = (mean(delta_APAR_t00X)/mean(Mean_CTRL_APAR))*100,
+                                                                       
+                                                                       before_VT = mean(Mean_CTRL_VT),
+                                                                       delta_VT = mean(delta_VT_t00X),
+                                                                       percent_VT = (mean(delta_VT_t00X)/mean(Mean_CTRL_VT))*100,
+                                                                       
+                                                                       before_SM = mean(Mean_CTRL_SMOIS),
+                                                                       delta_SM = mean(delta_SMOIS_t00X),
+                                                                       percent_SM = (mean(delta_SMOIS_t00X)/mean(Mean_CTRL_SMOIS))*100,
+                                                                       
+                                                                       before_VPD = mean(Mean_CTRL_VPD),
+                                                                       delta_VPD = mean(delta_VPD_t00X),
+                                                                       percent_VPD = (mean(delta_VPD_t00X)/mean(Mean_CTRL_VPD))*100,
                                                                        
                                                                        before_GPP = mean(Mean_CTRL_PSN),
-                                                                       delta_GPP = mean(delta_PSN_t00X))#(mean(delta_PSN_t00X)/mean(Mean_CTRL_PSN))*100) %>% ungroup()
-kable(outside_data_avgs, format = "latex", digits = 3, booktabs = TRUE)
+                                                                       delta_GPP = mean(delta_PSN_t00X),
+                                                                       percent_GPP = (mean(delta_PSN_t00X)/mean(Mean_CTRL_PSN))*100) %>% ungroup()
+outside_data_avgs_transposed <- outside_data_avgs %>% mutate(treatment = paste0(year, ", ", treatment)) %>% select(-year) %>% column_to_rownames("treatment") %>% t() %>% as.data.frame()
+
+
+outside_data_transposed_final <- bind_cols(outside_data_transposed, outside_data_avgs_transposed) %>% select("2017, 1", "2017, 2", "2017, 3", "2017, 4", "2017, 5", "2017, 6", "2017, average", "2018, 1", "2018, 2", "2018, 3", "2018, 4", "2018, 5", "2018, 6", "2018, average")
+
+
+rounding_function <- function(x) {
+  if (is.na(x) || x == 0) return("0.00")
+  first_digit_pos <- floor(log10(abs(x)))
+  if (first_digit_pos >= 0) {
+    target_decimals <- 2
+  } else {
+    sig_fig_decimals <- abs(first_digit_pos) + 1
+    target_decimals <- max(2, sig_fig_decimals)
+  }
+  formatC(x, format = "f", digits = target_decimals)
+}
+rounding_function_vec <- Vectorize(rounding_function)
+outside_data_transposed_final_formatted <- outside_data_transposed_final %>%
+  mutate(across(where(is.numeric), rounding_function_vec))
+
+
+kable(outside_data_transposed_final_formatted, format = "latex", booktabs = TRUE)
 ```
 
 
@@ -1470,10 +1722,23 @@ Ford_formatted_GLM_Table <- data.frame(VARIABLE = c("Best Model", "X.VT + X.APAR
 
 kable(Ford_formatted_GLM_Table, format = "latex", digits = 2, booktabs = TRUE)
 
+summary(best.model.glm)
 
 
 ##THIS CODE SUCKS, BUT WORKS. MODIFIED OTHER CODE IN LAZIEST WAY POSSIBLE. WHOOPS.
 last_awful_table <- function(fit){
+  cf  <- summary(fit)$coefficients
+  idx <- grep("as\\.factor\\(treatment\\).*as\\.factor\\(year\\).*delta_.*", rownames(cf))
+  trm <- rownames(cf)[idx]
+  data.frame(year = sub(".*as\\.factor\\(year\\)([0-9]+).*", "\\1", trm),
+             treatment = sub(".*as\\.factor\\(treatment\\)([0-9]+).*", "\\1", trm),
+             variable = sub(".*:(delta_[^:]+)$", "\\1", trm),
+             p_val = cf[idx, 4],
+             slope = cf[idx, 1],
+             row.names = NULL)
+}
+
+last_awful_table_for_initialGPP <- function(fit){
   cf  <- summary(fit)$coefficients
   idx <- grep("as\\.factor\\(treatment\\).*as\\.factor\\(year\\).*Mean_.*", rownames(cf))
   trm <- rownames(cf)[idx]
@@ -1485,18 +1750,52 @@ last_awful_table <- function(fit){
              row.names = NULL)
 }
 
-last.awful.mod <- last_awful_table(best.model.glm) #%>% slice(1:60) #%>% separate(year, into = c("year", "treatment", "variable"), sep = ":") #%>% mutate(year = sub("as\\.factor\\(year\\)", "", year), treatment = sub("as\\.factor\\(treatment\\)", "", treatment))
+last.awful.mod.deltas <- last_awful_table(best.model.glm)
+last.awful.mod.initialGPP <- last_awful_table_for_initialGPP(best.model.glm)
+
+last.awful.mod <- bind_rows(last.awful.mod.deltas, last.awful.mod.initialGPP)
+
+last.awful.mod.transposed <- last.awful.mod %>% mutate(treatment = paste0(year, ", ", treatment)) %>% select(-year, -p_val) %>% pivot_wider(names_from = "treatment", values_from = "slope")
+
+last.awful.mod.summary <- last.awful.mod %>% group_by(year, variable) %>% summarize(slope = mean(slope)) %>% pivot_wider(names_from = "year", values_from = "slope")
+colnames(last.awful.mod.summary) <- c("variable", "AVG2017", "AVG2018")
+
+last.awful.mod.transposed.final <- left_join(last.awful.mod.transposed, last.awful.mod.summary, by = "variable") %>% select("variable", "2017, 1", "2017, 2", "2017, 3", "2017, 4", "2017, 5", "2017, 6", "AVG2017", "2018, 1", "2018, 2", "2018, 3", "2018, 4", "2018, 5", "2018, 6", "AVG2018")
+
+
+
+rounding_function <- function(x) {
+  if (is.na(x) || x == 0) return("0.00")
+  first_digit_pos <- floor(log10(abs(x)))
+  if (first_digit_pos >= 0) {
+    target_decimals <- 2
+  } else {
+    sig_fig_decimals <- abs(first_digit_pos) + 1
+    target_decimals <- max(2, sig_fig_decimals)
+  }
+  formatC(x, format = "f", digits = target_decimals)
+}
+rounding_function_vec <- Vectorize(rounding_function)
+last.awful.mod.transposed.final.formatted <- last.awful.mod.transposed.final %>%
+  mutate(across(where(is.numeric), rounding_function_vec))
+
+
+kable(last.awful.mod.transposed.final.formatted, format = "latex", booktabs = TRUE)
+
+
+
+#%>% slice(1:60) #%>% separate(year, into = c("year", "treatment", "variable"), sep = ":") #%>% mutate(year = sub("as\\.factor\\(year\\)", "", year), treatment = sub("as\\.factor\\(treatment\\)", "", treatment))
 
 #last.awful.mod.pivoted <- last.awful.mod %>% select(-p_val) %>% pivot_wider(names_from = variable, values_from = slope)
 #write.csv(last.awful.mod.pivoted, "~/Desktop/data_for_aov.csv")
 
 
-last.awful.mod.2017 <- last.awful.mod %>% filter(year == 2017) %>% select(-p_val, -year) %>% mutate(slope = round(slope, 3)) %>% pivot_wider(names_from = variable, values_from = slope)
-last.awful.mod.2018 <- last.awful.mod %>% filter(year == 2018) %>% select(-p_val, -year) %>% mutate(slope = round(slope, 3)) %>% pivot_wider(names_from = variable, values_from = slope)
-last.awful.mod.summary <- last.awful.mod %>% group_by(year, variable) %>% summarize(slope = mean(slope))
-kable(t(last.awful.mod.2017), format = "latex", digits = 2, booktabs = TRUE)
-kable(t(last.awful.mod.2018), format = "latex", digits = 2, booktabs = TRUE)
-kable(last.awful.mod.summary, format = "latex", digits = 3, booktabs = TRUE)
+#last.awful.mod.2017 <- last.awful.mod %>% filter(year == 2017) %>% select(-p_val, -year) %>% mutate(slope = round(slope, 3)) %>% pivot_wider(names_from = variable, values_from = slope)
+#last.awful.mod.2018 <- last.awful.mod %>% filter(year == 2018) %>% select(-p_val, -year) %>% mutate(slope = round(slope, 3)) %>% pivot_wider(names_from = variable, values_from = slope)
+#last.awful.mod.summary <- last.awful.mod %>% group_by(year, variable) %>% summarize(slope = mean(slope))
+#kable(t(last.awful.mod.2017), format = "latex", digits = 2, booktabs = TRUE)
+#kable(t(last.awful.mod.2018), format = "latex", digits = 2, booktabs = TRUE)
+#kable(last.awful.mod.summary, format = "latex", digits = 3, booktabs = TRUE)
 
 
 
@@ -1552,9 +1851,184 @@ slopes_table <- left_join(slopes_table, mean.gpp_slopes_stat_sig2, by = "contras
 #mean.gpp_slopes_stat_sig2 <- mean.gpp_slopes_stat_sig %>% mutate(Mean.GPP.p.val = ifelse(p.value <= 0.01, "*", NA)) %>% select(contrast, Mean.GPP.p.val)
 
 
+rounding_function <- function(x) {
+  if (is.na(x) || x == 0) return("0.00")
+  first_digit_pos <- floor(log10(abs(x)))
+  if (first_digit_pos >= 0) {
+    target_decimals <- 2
+  } else {
+    sig_fig_decimals <- abs(first_digit_pos) + 1
+    target_decimals <- max(2, sig_fig_decimals)
+  }
+  formatC(x, format = "f", digits = target_decimals)
+}
+rounding_function_vec <- Vectorize(rounding_function)
+slopes_table.formatted <- slopes_table %>%
+  mutate(across(where(is.numeric), rounding_function_vec))
+
 
 options(knitr.kable.NA = '')
-kable(slopes_table, format = "latex", digits = 4, booktabs = TRUE)
+kable(slopes_table.formatted, format = "latex", booktabs = TRUE)
+```
+
+
+## Revisions Data
+
+```{r}
+may26_outside_luc1.17 <- read.csv("./data/csvs/csvs_for_revision/May2026_17.001_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 1)
+may26_outside_luc2.17 <- read.csv("./data/csvs/csvs_for_revision/May2026_17.002_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 2)
+may26_outside_luc3.17 <- read.csv("./data/csvs/csvs_for_revision/May2026_17.003_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 3)
+may26_outside_luc4.17 <- read.csv("./data/csvs/csvs_for_revision/May2026_17.004_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 4)
+may26_outside_luc5.17 <- read.csv("./data/csvs/csvs_for_revision/May2026_17.005_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 5)
+may26_outside_luc6.17 <- read.csv("./data/csvs/csvs_for_revision/May2026_17.006_deciduous_points_only.csv") %>% mutate(year = 2017, treatment = 6)
+may26_outside_luc1.18 <- read.csv("./data/csvs/csvs_for_revision/May2026_18.001_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 1)
+may26_outside_luc2.18 <- read.csv("./data/csvs/csvs_for_revision/May2026_18.002_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 2)
+may26_outside_luc3.18 <- read.csv("./data/csvs/csvs_for_revision/May2026_18.003_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 3)
+may26_outside_luc4.18 <- read.csv("./data/csvs/csvs_for_revision/May2026_18.004_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 4)
+may26_outside_luc5.18 <- read.csv("./data/csvs/csvs_for_revision/May2026_18.005_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 5)
+may26_outside_luc6.18 <- read.csv("./data/csvs/csvs_for_revision/May2026_18.006_deciduous_points_only.csv") %>% mutate(year = 2018, treatment = 6)
+
+may26_outside_luc1.17_scaled <- may26_outside_luc1.17 %>% mutate(z_scores = scale(Mean_CTRL_PSN))
+
+ggplot(data = may26_outside_luc1.17_scaled) +
+  geom_histogram(aes(x = Mean_t00X_PSN))
+
+
+may26_outside <- bind_rows(may26_outside_luc1.17, may26_outside_luc2.17, may26_outside_luc3.17, may26_outside_luc4.17, may26_outside_luc5.17, may26_outside_luc6.17,
+                                   may26_outside_luc1.18, may26_outside_luc2.18, may26_outside_luc3.18, may26_outside_luc4.18, may26_outside_luc5.18, may26_outside_luc6.18)
+
+
+mask003 <- data.frame(long = c(-80.13846, -80.17999, -81.60565, -82.27844, -82.25146, -80.82397, -80.13846),
+                      lat = c(38.33989, 37.80225, 36.78333, 36.80656, 37.34526, 38.37086, 38.33989))
+mask004 <- data.frame(long = c(-80.13846, -80.18411, -81.46793, -82.2084, -82.17819, -80.89255, -80.13846),
+                      lat = c(38.33989, 37.74847, 36.83211, 36.85827, 37.4508, 38.37374, 38.33989))
+mask003_sf <- st_polygon(list(as.matrix(mask003))) %>% st_sfc(crs = 4326)
+mask004_sf <- st_polygon(list(as.matrix(mask004))) %>% st_sfc(crs = 4326)
+may26_outside_sf <- st_as_sf(may26_outside, coords = c("Longitude", "Latitude"), crs = 4326)
+inside_003 <- st_within(may26_outside_sf, mask003_sf, sparse = FALSE)[,1]
+inside_004 <- st_within(may26_outside_sf, mask004_sf, sparse = FALSE)[,1]
+
+keep_point <- case_when(may26_outside_sf$treatment == 3 ~ !inside_003, may26_outside_sf$treatment == 4 ~ !inside_004, TRUE ~ TRUE)
+may26_outside_sf <- may26_outside_sf %>% ungroup()
+may26_outside_unfiltered <- may26_outside_sf[keep_point, ] %>% mutate(Longitude = st_coordinates(.)[,1], Latitude = st_coordinates(.)[,2]) %>% st_drop_geometry()
+
+
+may26_outside_unfiltered.for_histogram <- may26_outside_unfiltered %>% mutate(removed_or_kept_gpp = ifelse(Mean_t00X_PSN <= 2, "removed", "kept"),
+                                                                              removed_or_kept_deltatemp = ifelse(delta_VT_t00X <= 1 & delta_VT_t00X >= -1, "kept", "removed"),
+                                                                              treatment = recode(treatment, '1' = "Scenario 1", '2' = "Scenario 2", '3' = "Scenario 3", '4' = "Scenario 4", '5' = "Scenario 5", '6' = "Scenario 6"))
+
+t00X_filterGPP_plots <- ggplot(data = may26_outside_unfiltered.for_histogram) +
+  geom_histogram(aes(x = Mean_t00X_PSN, fill = removed_or_kept_gpp)) +
+  facet_grid(year ~ treatment) +
+  scale_fill_manual(values = c("kept" = "royalblue2", "removed" = "violetred1")) +
+  geom_vline(xintercept = 2, color = "violetred1", linetype = "dashed") +
+  theme_test() +
+  lims(y = c(0, 1800)) +
+  labs(y = NULL, x = expression("Average GPP Following Treatment in Remaining Deciduous Forest Grid Cells (" * mu * "mol CO"[2] * " m"^{-2} * " s" ^{-1} * ")")) +
+  theme(legend.position = "none", strip.text = element_text(size = 14))
+
+t00X_filterDeltaVT_plots <- ggplot(data = may26_outside_unfiltered.for_histogram) +
+  geom_histogram(aes(x = delta_VT_t00X, fill = removed_or_kept_deltatemp), binwidth = 2) +
+  facet_grid(year ~ treatment) +
+  scale_fill_manual(values = c("kept" = "royalblue2", "removed" = "violetred1")) +
+  geom_vline(xintercept = -1, color = "violetred1", linetype = "dashed") +
+  geom_vline(xintercept = 1, color = "violetred1", linetype = "dashed") +
+  theme_test() +
+  labs(y = "Number of Grid Cells", x = expression(Delta * "Vegetation Temperature in Remaining Deciduous Forest Grid Cells (K)")) +
+  theme(legend.position = "none", strip.text = element_text(size = 14))
+
+ctrl_17 <- read.csv("./data/csvs/csvs_for_revision/May2026_17.001_all_points.csv") %>% mutate(treatment = "Controls", year = 2017)
+ctrl_18 <- read.csv("./data/csvs/csvs_for_revision/May2026_18.001_all_points.csv") %>% mutate(treatment = "Controls", year = 2018)
+ctrl_runs <- bind_rows(ctrl_17, ctrl_18) %>% mutate(removed_or_kept_gpp = ifelse(Mean_CTRL_PSN <= 2, "removed", "kept"), removed_or_kept_deltatemp = NA)
+
+
+CTRL_filterGPP_plots <- ggplot(data = ctrl_runs) +
+  geom_histogram(aes(x = Mean_CTRL_PSN, fill = removed_or_kept_gpp)) +
+  facet_grid(year ~ treatment) +
+  scale_fill_manual(values = c("kept" = "royalblue2", "removed" = "violetred1")) +
+  geom_vline(xintercept = 2, color = "violetred1", linetype = "dashed") +
+  theme_test() +
+  lims(y = c(0, 1800)) +
+  labs(y = "Number of Grid Cells", x = expression("Average Control GPP (" * mu * "mol CO"[2] * " m"^{-2} * " s" ^{-1} * ")")) +
+  theme(legend.position = "none", strip.background = element_rect(fill = "springgreen2", color = "darkgreen"), strip.text = element_text(size = 14))
+
+
+
+
+GPP_filter_plots <- ggarrange(CTRL_filterGPP_plots, t00X_filterGPP_plots, widths = c(1,5), labels = c("(A)", "(B)"), hjust = 0.01, font.label = list(size = 16))
+#ggsave("~/Desktop/GPP_filter_plots.pdf", GPP_filter_plots, width = 18.25, height = 4.7, units = "in")
+
+all_filter_plots <- ggarrange(GPP_filter_plots, t00X_filterDeltaVT_plots, labels = c("","(C)"), nrow = 2)
+
+ggsave("~/Desktop/all_filter_plots.pdf", all_filter_plots, width = 18.25, height = 10, units = "in")
+
+
+#theme(legend.position = "bottom", legend.text = element_text(size = 14), legend.title = element_text(size = 14), axis.title = element_text(size = 14), axis.text = element_text(size = 14), strip.text = element_text(size = 16)) + guides(color = guide_legend(nrow = 2), linewidth = guide_legend(nrow = 2), linetype = guide_legend(nrow = 2))
+
+
+
+outside_filtered_divided <- split(outside_filtered, list(outside_filtered$year, outside_filtered$treatment))
+
+may26_outside_unfiltered_divided <- split(may26_outside_unfiltered, list(may26_outside_unfiltered$year, may26_outside_unfiltered$treatment))
+
+comparison_of_filtered_unfiltered_outside_2017 <- data.frame(year = 2017, scenario = c(1,2,3,4,5,6),
+                                                             before.outside = c(length(may26_outside_unfiltered_divided[["2017.1"]]$delta_VT_t00X), length(may26_outside_unfiltered_divided[["2017.2"]]$delta_VT_t00X), length(may26_outside_unfiltered_divided[["2017.3"]]$delta_VT_t00X), length(may26_outside_unfiltered_divided[["2017.4"]]$delta_VT_t00X), length(may26_outside_unfiltered_divided[["2017.5"]]$delta_VT_t00X), length(may26_outside_unfiltered_divided[["2017.6"]]$delta_VT_t00X)),
+                                                             after.outside = c(length(outside_filtered_divided[["2017.1"]]$delta_VT_t00X), length(outside_filtered_divided[["2017.2"]]$delta_VT_t00X), length(outside_filtered_divided[["2017.3"]]$delta_VT_t00X), length(outside_filtered_divided[["2017.4"]]$delta_VT_t00X), length(outside_filtered_divided[["2017.5"]]$delta_VT_t00X), length(outside_filtered_divided[["2017.6"]]$delta_VT_t00X))) %>% mutate(outside.difference = before.outside - after.outside) %>% mutate(percent.outside.difference = (outside.difference/before.outside) * 100)
+
+comparison_of_filtered_unfiltered_outside_2018 <- data.frame(year = 2018, scenario = c(1,2,3,4,5,6),
+                                                             before.outside = c(length(may26_outside_unfiltered_divided[["2018.1"]]$delta_VT_t00X), length(may26_outside_unfiltered_divided[["2018.2"]]$delta_VT_t00X), length(may26_outside_unfiltered_divided[["2018.3"]]$delta_VT_t00X), length(may26_outside_unfiltered_divided[["2018.4"]]$delta_VT_t00X), length(may26_outside_unfiltered_divided[["2018.5"]]$delta_VT_t00X), length(may26_outside_unfiltered_divided[["2018.6"]]$delta_VT_t00X)),
+                                                             after.outside = c(length(outside_filtered_divided[["2018.1"]]$delta_VT_t00X), length(outside_filtered_divided[["2018.2"]]$delta_VT_t00X), length(outside_filtered_divided[["2018.3"]]$delta_VT_t00X), length(outside_filtered_divided[["2018.4"]]$delta_VT_t00X), length(outside_filtered_divided[["2018.5"]]$delta_VT_t00X), length(outside_filtered_divided[["2018.6"]]$delta_VT_t00X))) %>% mutate(outside.difference = before.outside - after.outside) %>% mutate(percent.outside.difference = (outside.difference/before.outside) * 100)
+
+
+comparison_of_filtered_unfiltered_outside <- bind_rows(comparison_of_filtered_unfiltered_outside_2017, comparison_of_filtered_unfiltered_outside_2018)
+
+
+inside_17.001 <- read.csv("./data/csvs/deforested/December2025_17.001_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 1) %>% select(-X) %>% filter(Mean_CTRL_PSN > 2)
+inside_17.002 <- read.csv("./data/csvs/deforested/December2025_17.002_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 2) %>% select(-X) %>% filter(Mean_CTRL_PSN > 2)
+inside_17.003 <- read.csv("./data/csvs/deforested/December2025_17.003_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 3) %>% select(-X) %>% filter(Mean_CTRL_PSN > 2)
+inside_17.004 <- read.csv("./data/csvs/deforested/December2025_17.004_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 4) %>% select(-X) %>% filter(Mean_CTRL_PSN > 2)
+inside_17.005 <- read.csv("./data/csvs/deforested/December2025_17.005_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 5) %>% select(-X) %>% filter(Mean_CTRL_PSN > 2)
+inside_17.006 <- read.csv("./data/csvs/deforested/December2025_17.006_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 6) %>% select(-X) %>% filter(Mean_CTRL_PSN > 2)
+inside_18.001 <- read.csv("./data/csvs/deforested/December2025_18.001_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 1) %>% select(-X) %>% filter(Mean_CTRL_PSN > 2)
+inside_18.002 <- read.csv("./data/csvs/deforested/December2025_18.002_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 2) %>% select(-X) %>% filter(Mean_CTRL_PSN > 2)
+inside_18.003 <- read.csv("./data/csvs/deforested/December2025_18.003_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 3) %>% select(-X) %>% filter(Mean_CTRL_PSN > 2)
+inside_18.004 <- read.csv("./data/csvs/deforested/December2025_18.004_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 4) %>% select(-X) %>% filter(Mean_CTRL_PSN > 2)
+inside_18.005 <- read.csv("./data/csvs/deforested/December2025_18.005_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 5) %>% select(-X) %>% filter(Mean_CTRL_PSN > 2)
+inside_18.006 <- read.csv("./data/csvs/deforested/December2025_18.006_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 6) %>% select(-X) %>% filter(Mean_CTRL_PSN > 2)
+
+may26_inside_17.001 <- read.csv("./data/csvs/csvs_for_revision/May2026_17.001_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 1) %>% select(-X)
+may26_inside_17.002 <- read.csv("./data/csvs/csvs_for_revision/May2026_17.002_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 2) %>% select(-X)
+may26_inside_17.003 <- read.csv("./data/csvs/csvs_for_revision/May2026_17.003_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 3) %>% select(-X)
+may26_inside_17.004 <- read.csv("./data/csvs/csvs_for_revision/May2026_17.004_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 4) %>% select(-X)
+may26_inside_17.005 <- read.csv("./data/csvs/csvs_for_revision/May2026_17.005_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 5) %>% select(-X)
+may26_inside_17.006 <- read.csv("./data/csvs/csvs_for_revision/May2026_17.006_deforested_points_only.csv") %>% mutate(year = 2017, treatment = 6) %>% select(-X)
+may26_inside_18.001 <- read.csv("./data/csvs/csvs_for_revision/May2026_18.001_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 1) %>% select(-X)
+may26_inside_18.002 <- read.csv("./data/csvs/csvs_for_revision/May2026_18.002_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 2) %>% select(-X)
+may26_inside_18.003 <- read.csv("./data/csvs/csvs_for_revision/May2026_18.003_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 3) %>% select(-X)
+may26_inside_18.004 <- read.csv("./data/csvs/csvs_for_revision/May2026_18.004_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 4) %>% select(-X)
+may26_inside_18.005 <- read.csv("./data/csvs/csvs_for_revision/May2026_18.005_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 5) %>% select(-X)
+may26_inside_18.006 <- read.csv("./data/csvs/csvs_for_revision/May2026_18.006_deforested_points_only.csv") %>% mutate(year = 2018, treatment = 6) %>% select(-X)
+
+
+comparison_of_filtered_unfiltered_inside_2017 <- data.frame(scenario = c(1,2,3,4,5,6), year = 2017,
+                                before.inside = c(length(may26_inside_17.001$delta_VT_t00X), length(may26_inside_17.002$delta_VT_t00X), length(may26_inside_17.003$delta_VT_t00X), length(may26_inside_17.004$delta_VT_t00X), length(may26_inside_17.005$delta_VT_t00X), length(may26_inside_17.006$delta_VT_t00X)),
+                                after.inside = c(length(inside_17.001$delta_VT_t00X), length(inside_17.002$delta_VT_t00X), length(inside_17.003$delta_VT_t00X), length(inside_17.004$delta_VT_t00X), length(inside_17.005$delta_VT_t00X), length(inside_17.006$delta_VT_t00X))) %>% mutate(inside.difference = before.inside - after.inside) %>% mutate(percent.inside.difference = (inside.difference/before.inside) * 100)
+
+
+comparison_of_filtered_unfiltered_inside_2018 <- data.frame(scenario = c(1,2,3,4,5,6), year = 2018,
+                                before.inside = c(length(may26_inside_18.001$delta_VT_t00X), length(may26_inside_18.002$delta_VT_t00X), length(may26_inside_18.003$delta_VT_t00X), length(may26_inside_18.004$delta_VT_t00X), length(may26_inside_18.005$delta_VT_t00X), length(may26_inside_18.006$delta_VT_t00X)),
+                                after.inside = c(length(inside_18.001$delta_VT_t00X), length(inside_18.002$delta_VT_t00X), length(inside_18.003$delta_VT_t00X), length(inside_18.004$delta_VT_t00X), length(inside_18.005$delta_VT_t00X), length(inside_18.006$delta_VT_t00X))) %>% mutate(inside.difference = before.inside - after.inside) %>% mutate(percent.inside.difference = (inside.difference/before.inside) * 100)
+
+comparison_of_filtered_unfiltered_inside <- bind_rows(comparison_of_filtered_unfiltered_inside_2017, comparison_of_filtered_unfiltered_inside_2018)
+
+comparison_of_filtered_unfiltered <- left_join(comparison_of_filtered_unfiltered_inside, comparison_of_filtered_unfiltered_outside, by = c("year", "scenario"))
+
+
+
+comparison_of_filtered_unfiltered_transposed <- comparison_of_filtered_unfiltered %>% mutate(treatment = paste0(year, ", ", scenario)) %>% select(-year) %>% column_to_rownames("treatment") %>% t() %>% as.data.frame()
+
+
+kable(comparison_of_filtered_unfiltered_transposed, format = "latex", digits = 3, booktabs = TRUE)
 ```
 
 
