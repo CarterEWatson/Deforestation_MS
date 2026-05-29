@@ -2032,6 +2032,162 @@ kable(comparison_of_filtered_unfiltered_transposed, format = "latex", digits = 3
 ```
 
 
+## Precipitation Validation
+
+```{r}
+prism_raster_april17 <- raster("./data/precip_validation_materials/PRISM_ppt_stable_4kmM3_2017_all_bil/PRISM_ppt_stable_4kmM3_201704_bil.bil")
+prism_raster_may17 <- raster("./data/precip_validation_materials/PRISM_ppt_stable_4kmM3_2017_all_bil/PRISM_ppt_stable_4kmM3_201705_bil.bil")
+prism_raster_june17 <- raster("./data/precip_validation_materials/PRISM_ppt_stable_4kmM3_2017_all_bil/PRISM_ppt_stable_4kmM3_201706_bil.bil")
+prism_raster_july17 <- raster("./data/precip_validation_materials/PRISM_ppt_stable_4kmM3_2017_all_bil/PRISM_ppt_stable_4kmM3_201707_bil.bil")
+prism_raster_august17 <- raster("./data/precip_validation_materials/PRISM_ppt_stable_4kmM3_2017_all_bil/PRISM_ppt_stable_4kmM3_201708_bil.bil")
+prism_raster_september17 <- raster("./data/precip_validation_materials/PRISM_ppt_stable_4kmM3_2017_all_bil/PRISM_ppt_stable_4kmM3_201709_bil.bil")
+prism_raster_october17 <- raster("./data/precip_validation_materials/PRISM_ppt_stable_4kmM3_2017_all_bil/PRISM_ppt_stable_4kmM3_201710_bil.bil")
+prism_raster_april18 <- raster("./data/precip_validation_materials/PRISM_ppt_stable_4kmM3_2018_all_bil/PRISM_ppt_stable_4kmM3_201804_bil.bil")
+prism_raster_may18 <- raster("./data/precip_validation_materials/PRISM_ppt_stable_4kmM3_2018_all_bil/PRISM_ppt_stable_4kmM3_201805_bil.bil")
+prism_raster_june18 <- raster("./data/precip_validation_materials/PRISM_ppt_stable_4kmM3_2018_all_bil/PRISM_ppt_stable_4kmM3_201806_bil.bil")
+prism_raster_july18 <- raster("./data/precip_validation_materials/PRISM_ppt_stable_4kmM3_2018_all_bil/PRISM_ppt_stable_4kmM3_201807_bil.bil")
+prism_raster_august18 <- raster("./data/precip_validation_materials/PRISM_ppt_stable_4kmM3_2018_all_bil/PRISM_ppt_stable_4kmM3_201808_bil.bil")
+prism_raster_september18 <- raster("./data/precip_validation_materials/PRISM_ppt_stable_4kmM3_2018_all_bil/PRISM_ppt_stable_4kmM3_201809_bil.bil")
+prism_raster_october18 <- raster("./data/precip_validation_materials/PRISM_ppt_stable_4kmM3_2018_all_bil/PRISM_ppt_stable_4kmM3_201810_bil.bil")
+beginning_of_month_nc_17 <- nc_open("./data/netCDF_files/wrfout_d01_2017-04-01.nc")
+end_of_month_nc_17 <- nc_open("./data/netCDF_files/wrfout_d01_2017-11-01.nc")
+beginning_of_month_nc_18 <- nc_open("./data/netCDF_files/wrfout_d01_2018-04-01.nc")
+end_of_month_nc_18 <- nc_open("./data/netCDF_files/wrfout_d01_2018-11-01.nc")
+
+prism_total17 <- prism_raster_april17 + prism_raster_may17 + prism_raster_june17 + prism_raster_july17 + prism_raster_august17 + prism_raster_september17 + prism_raster_october17
+prism_total18 <- prism_raster_april18 + prism_raster_may18 + prism_raster_june18 + prism_raster_july18 + prism_raster_august18 + prism_raster_september18 + prism_raster_october18
+
+lat <- ncvar_get(beginning_of_month_nc_17, "XLAT")
+lon <- ncvar_get(beginning_of_month_nc_17, "XLONG")
+
+rainnc_earlier_17 <- ncvar_get(beginning_of_month_nc_17, "RAINNC")
+rainnc_17 <- ncvar_get(end_of_month_nc_17, "RAINNC")
+
+
+
+rain_increment_17 <- rainnc_17 - rainnc_earlier_17
+wrf_raster_17 <- raster(nrows = dim(lat)[1], ncols = dim(lat)[2], xmn = min(lon), xmx = max(lon), ymn = min(lat), ymx = max(lat), crs = "+proj=longlat +datum=WGS84")
+new_rain_increment_17 <- rain_increment_17[, ncol(rain_increment_17):1]
+values(wrf_raster_17) <- as.vector(new_rain_increment_17)
+prism_reprojected_17 <- projectRaster(prism_total17, crs = crs(wrf_raster_17))
+prism_resampled_17 <- resample(prism_reprojected_17, wrf_raster_17, method = "bilinear")
+bias_17 <- wrf_raster_17 - prism_resampled_17
+
+rainnc_earlier_18 <- ncvar_get(beginning_of_month_nc_18, "RAINNC")
+rainnc_18 <- ncvar_get(end_of_month_nc_18, "RAINNC")
+rain_increment_18 <- rainnc_18 - rainnc_earlier_18
+wrf_raster_18 <- raster(nrows = dim(lat)[1], ncols = dim(lat)[2], xmn = min(lon), xmx = max(lon), ymn = min(lat), ymx = max(lat), crs = "+proj=longlat +datum=WGS84")
+new_rain_increment_18 <- rain_increment_18[, ncol(rain_increment_18):1]
+values(wrf_raster_18) <- as.vector(new_rain_increment_18)
+prism_reprojected_18 <- projectRaster(prism_total18, crs = crs(wrf_raster_18))
+prism_resampled_18 <- resample(prism_reprojected_18, wrf_raster_18, method = "bilinear")
+bias_18 <- wrf_raster_18 - prism_resampled_18
+
+precip_limits <- range(c(values(wrf_raster_17), values(prism_resampled_17), values(bias_17), values(wrf_raster_18), values(prism_resampled_18), values(bias_18)), na.rm = TRUE)
+
+PRISM_mean_PRCP_17 <- cellStats(prism_resampled_17, stat = 'mean')
+PRISM_mean_PRCP_18 <- cellStats(prism_resampled_18, stat = 'mean')
+WRF_mean_PRCP_17 <- cellStats(wrf_raster_17, stat = 'mean')
+WRF_mean_PRCP_18 <- cellStats(wrf_raster_18, stat = 'mean')
+print(paste("PRISM Precipitation Across Focal Domain in 2017:", PRISM_mean_PRCP_17))
+print(paste("PRISM Precipitation Across Focal Domain in 2018:", PRISM_mean_PRCP_18))
+print(paste("PRISM Precipitation Across Focal Domain in 2018:", WRF_mean_PRCP_17))
+print(paste("PRISM Precipitation Across Focal Domain in 2018:", WRF_mean_PRCP_18))
+
+#wrf_raster_17_NONZERO <- wrf_raster_17
+#wrf_raster_17_NONZERO[wrf_raster_17_NONZERO <= 313] <- NA
+#corrected_bias_17 <- wrf_raster_17_NONZERO - prism_resampled_17
+#mean(values(bias_17), na.rm = TRUE)
+#mean(values(corrected_bias_17), na.rm = TRUE) ##Straight-up average bias
+#sqrt(mean(values(corrected_bias_17)^2, na.rm = TRUE))
+#cellStats(wrf_raster_17_NONZERO, stat = 'mean', na.rm = TRUE)
+#plot(corrected_bias_17, main = "Bias (WRF - PRISM), April - October, 2017", col = turbo(100), zlim = precip_limits)
+
+par(mfrow = c(2, 3), mar = c(4, 4, 2, 6))
+plot(wrf_raster_17, main = "WRF, April - October, 2017", col = turbo(100), zlim = precip_limits, xlim = range(lat))
+plot(prism_resampled_17, main = "PRISM, April - October, 2017", col = turbo(100), zlim = precip_limits, xlim = range(lat))
+plot(bias_17, main = "Bias (WRF - PRISM), April - October, 2017", col = turbo(100), zlim = precip_limits)
+plot(wrf_raster_18, main = "WRF, April - October, 2018", col = turbo(100), zlim = precip_limits, xlim = range(lat))
+plot(prism_resampled_18, main = "PRISM, April - October, 2018", col = turbo(100), zlim = precip_limits, xlim = range(lat))
+plot(bias_18, main = "Bias (WRF - PRISM), April - October, 2018", col = turbo(100), zlim = precip_limits)
+
+
+actual_mean_17 <- cellStats(prism_resampled_17, stat = "mean")
+actual_mean_18 <- cellStats(prism_resampled_18, stat = "mean")
+wrf_mean_17 <- cellStats(wrf_raster_17, stat = "mean")
+wrf_mean_18 <- cellStats(wrf_raster_18, stat = "mean")
+
+diff17 <- wrf_mean_17 / actual_mean_17
+diff18 <- wrf_mean_18 / actual_mean_18
+
+
+
+lat_cropped <- lat[5:(nrow(lat)-4), 5:(ncol(lat)-4)]
+lon_cropped <- lon[5:(nrow(lon)-4), 5:(ncol(lon)-4)]
+
+rainnc_17_earlier_cropped <- rainnc_earlier_17[5:(nrow(rainnc_earlier_17)-4), 5:(ncol(rainnc_earlier_17)-4)]
+rainnc_17_cropped <- rainnc_17[5:(nrow(rainnc_17)-4), 5:(ncol(rainnc_17)-4)]
+
+rain_increment_17 <- rainnc_17_cropped - rainnc_17_earlier_cropped
+
+wrf_raster_17 <- raster(nrows = dim(lat_cropped)[1], ncols = dim(lat_cropped)[2], xmn = min(lon_cropped), xmx = max(lon_cropped), ymn = min(lat_cropped), ymx = max(lat_cropped), crs = "+proj=longlat +datum=WGS84")
+new_rain_increment_17 <- rain_increment_17[, ncol(rain_increment_17):1]
+values(wrf_raster_17) <- as.vector(new_rain_increment_17)
+prism_reprojected_17 <- projectRaster(prism_total17, crs = crs(wrf_raster_17))
+prism_resampled_17 <- resample(prism_reprojected_17, wrf_raster_17, method = "bilinear")
+bias_17 <- wrf_raster_17 - prism_resampled_17
+
+rainnc_18_earlier_cropped <- rainnc_earlier_18[5:(nrow(rainnc_earlier_18)-4), 5:(ncol(rainnc_earlier_18)-4)]
+rainnc_18_cropped <- rainnc_18[5:(nrow(rainnc_17)-4), 5:(ncol(rainnc_18)-4)]
+
+rain_increment_18 <- rainnc_18_cropped - rainnc_18_earlier_cropped
+
+wrf_raster_18 <- raster(nrows = dim(lat_cropped)[1], ncols = dim(lat_cropped)[2], xmn = min(lon_cropped), xmx = max(lon_cropped), ymn = min(lat_cropped), ymx = max(lat_cropped), crs = "+proj=longlat +datum=WGS84")
+new_rain_increment_18 <- rain_increment_18[, ncol(rain_increment_18):1]
+values(wrf_raster_18) <- as.vector(new_rain_increment_18)
+prism_reprojected_18 <- projectRaster(prism_total18, crs = crs(wrf_raster_18))
+prism_resampled_18 <- resample(prism_reprojected_18, wrf_raster_18, method = "bilinear")
+bias_18 <- wrf_raster_18 - prism_resampled_18
+
+precip_limits <- range(c(values(wrf_raster_17), values(prism_resampled_17), values(bias_17), values(wrf_raster_18), values(prism_resampled_18), values(bias_18)), na.rm = TRUE)
+
+PRISM_mean_PRCP_17 <- cellStats(prism_resampled_17, stat = 'mean')
+PRISM_mean_PRCP_18 <- cellStats(prism_resampled_18, stat = 'mean')
+WRF_mean_PRCP_17 <- cellStats(wrf_raster_17, stat = 'mean')
+WRF_mean_PRCP_18 <- cellStats(wrf_raster_18, stat = 'mean')
+print(paste("PRISM Precipitation Across Focal Domain in 2017:", PRISM_mean_PRCP_17))
+print(paste("PRISM Precipitation Across Focal Domain in 2018:", PRISM_mean_PRCP_18))
+print(paste("PRISM Precipitation Across Focal Domain in 2018:", WRF_mean_PRCP_17))
+print(paste("PRISM Precipitation Across Focal Domain in 2018:", WRF_mean_PRCP_18))
+
+#wrf_raster_17_NONZERO <- wrf_raster_17
+#wrf_raster_17_NONZERO[wrf_raster_17_NONZERO <= 313] <- NA
+#corrected_bias_17 <- wrf_raster_17_NONZERO - prism_resampled_17
+#mean(values(bias_17), na.rm = TRUE)
+#mean(values(corrected_bias_17), na.rm = TRUE) ##Straight-up average bias
+#sqrt(mean(values(corrected_bias_17)^2, na.rm = TRUE))
+#cellStats(wrf_raster_17_NONZERO, stat = 'mean', na.rm = TRUE)
+#plot(corrected_bias_17, main = "Bias (WRF - PRISM), April - October, 2017", col = turbo(100), zlim = precip_limits)
+
+pdf("~/Desktop/S1_PrecipValidation.pdf", width = 9.45, height = 5.2)
+par(mfrow = c(2, 3), mar = c(4, 4, 2, 6))
+plot(wrf_raster_17, main = "WRF, April - October, 2017", col = turbo(100), zlim = precip_limits, xlim = range(lat))
+plot(prism_resampled_17, main = "PRISM, April - October, 2017", col = turbo(100), zlim = precip_limits, xlim = range(lat))
+plot(bias_17, main = "Bias (WRF - PRISM), April - October, 2017", col = turbo(100), zlim = precip_limits)
+plot(wrf_raster_18, main = "WRF, April - October, 2018", col = turbo(100), zlim = precip_limits, xlim = range(lat))
+plot(prism_resampled_18, main = "PRISM, April - October, 2018", col = turbo(100), zlim = precip_limits, xlim = range(lat))
+plot(bias_18, main = "Bias (WRF - PRISM), April - October, 2018", col = turbo(100), zlim = precip_limits)
+dev.off()
+
+actual_mean_17 <- cellStats(prism_resampled_17, stat = "mean")
+actual_mean_18 <- cellStats(prism_resampled_18, stat = "mean")
+wrf_mean_17 <- cellStats(wrf_raster_17, stat = "mean")
+wrf_mean_18 <- cellStats(wrf_raster_18, stat = "mean")
+
+diff17 <- wrf_mean_17 / actual_mean_17
+diff18 <- wrf_mean_18 / actual_mean_18
+
+```
 
 
 
