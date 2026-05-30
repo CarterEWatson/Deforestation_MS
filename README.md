@@ -11,5 +11,5 @@ This repository is licensed under the [Creative Commons Attribution 4.0 Internat
 ### Data Citation
 If you use the datasets or code from this repository in your research, please cite the corresponding permanent repository and the associated journal article:
 
-* **Dataset DOI:** [![DOI](https://zenodo.org/badge/1142723594.svg)](https://doi.org/10.5281/zenodo.18841350)
+* **Dataset DOI:** [![found on Zenodo](https://zenodo.org/badge/1142723594.svg)](https://doi.org/10.5281/zenodo.18841350)
 * **Journal Article:** Forthcoming.
