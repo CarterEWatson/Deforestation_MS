@@ -689,57 +689,50 @@ plots1and2 <- ggplot(data = photosynthetic_rate_df2) +
 ###########
 
 modis_gpp_list <- list()
-model_1_gpp_list <- list()
-model_2_gpp_list <- list()
-desired_number_of_files <- 19
-for (i in 1:desired_number_of_files) {
+model.out.of.the.box.gpp.list <- list()
+model.adjusted.params.gpp.list <- list()
+
+start_date_2017 <- as.POSIXct("2017-01-01", tz = "UTC")
+start_date_2018 <- as.POSIXct("2018-01-01", tz = "UTC")
+
+for (i in 1:19) {
   modis_file <- sprintf("./data/gpp_validation/modis_point_%03d.csv", i)
-  model_file_1 <- sprintf("./data/gpp_validation/pre_validation_%03d.csv", i)
-  model_file_2 <- sprintf("./data/gpp_validation/validation%03d.csv", i)
-  modis_data <- read.csv(modis_file) %>%
-    dplyr::select(calendar_date, value) %>%
-    mutate(calendar_date = as.Date(calendar_date), GPP_MODIS = value * 1e-4) %>%
-    group_by(calendar_date) %>%
-    summarise(!!paste0("average_gpp_", sprintf("%03d", i)) := mean(GPP_MODIS, na.rm = TRUE), .groups = "drop") %>%
-    mutate(time = as.POSIXct(calendar_date, format="%Y-%m-%d", tz="UTC")) %>%
-    dplyr::select(-calendar_date)
-  model_data_1 <- read.csv(model_file_1) %>%
-    mutate(fixtimes = as.POSIXct(DateTime, format="%Y-%m-%dT%H:%M:%SZ", tz="UTC"), GPP_model_1_kg_per_s = GPP * 1e-3)
-  start_date_2017 <- as.POSIXct("2017-01-01", tz = "UTC")
-  model_data_1_2017_8day <- model_data_1 %>%
+  model.out.of.the.box.file <- sprintf("./data/gpp_validation/pre_validation_%03d.csv", i)
+  model.adjusted.params.file <- sprintf("./data/gpp_validation/validation%03d.csv", i)
+  modis_data <- read.csv(modis_file) %>% dplyr::select(calendar_date, value) %>% mutate(calendar_date = as.Date(calendar_date), GPP_MODIS = value * 1e-4) %>%
+    group_by(calendar_date) %>% summarise(!!paste0("average_gpp_", sprintf("%03d", i)) := mean(GPP_MODIS, na.rm = TRUE), .groups = "drop") %>%
+    mutate(time = as.POSIXct(calendar_date, format="%Y-%m-%d", tz="UTC")) %>% dplyr::select(-calendar_date)
+  model.out.of.the.box <- read.csv(model.out.of.the.box.file) %>% mutate(fixtimes = as.POSIXct(DateTime, format="%Y-%m-%dT%H:%M:%SZ", tz="UTC"), GPP_model_1_kg_per_s = GPP * 1e-3)
+  model.out.of.the.box.2017.8day <- model.out.of.the.box %>% 
+    filter(fixtimes < as.POSIXct("2018-01-01", tz = "UTC")) %>%
     mutate(time = start_date_2017 + floor(as.numeric(difftime(fixtimes, start_date_2017, units = "days")) / 8) * 8 * 86400) %>%
     group_by(time) %>%
-    summarize(!!paste0("Model_1_kg_per_8days_", sprintf("%03d", i)) := sum(GPP_model_1_kg_per_s * 3600, na.rm = TRUE), .groups = "drop") %>% 
-    slice(-c(1,n()))
-  start_date_2018 <- as.POSIXct("2018-01-01", tz = "UTC")
-  model_data_1_2018_8day <- model_data_1 %>%
+    summarize(!!paste0("Model_1_kg_per_8days_", sprintf("%03d", i)) := sum(GPP_model_1_kg_per_s * 3600, na.rm = TRUE), .groups = "drop")
+  model.out.of.the.box.2018.8day <- model.out.of.the.box %>% 
+    filter(fixtimes >= as.POSIXct("2018-01-01", tz = "UTC")) %>%
     mutate(time = start_date_2018 + floor(as.numeric(difftime(fixtimes, start_date_2018, units = "days")) / 8) * 8 * 86400) %>%
     group_by(time) %>%
-    summarize(!!paste0("Model_1_kg_per_8days_", sprintf("%03d", i)) := sum(GPP_model_1_kg_per_s * 3600, na.rm = TRUE), .groups = "drop") %>% 
-    slice(-c(1,n()))
-  model_data_2 <- read.csv(model_file_2) %>%
-    mutate(fixtimes = as.POSIXct(DateTime, format="%Y-%m-%dT%H:%M:%SZ", tz="UTC"), GPP_model_2_kg_per_s = GPP * 1e-3)
-  start_date_2017 <- as.POSIXct("2017-01-01", tz = "UTC")
-  model_data_2_2017_8day <- model_data_2 %>%
+    summarize(!!paste0("Model_1_kg_per_8days_", sprintf("%03d", i)) := sum(GPP_model_1_kg_per_s * 3600, na.rm = TRUE), .groups = "drop")
+  model.adjusted.params <- read.csv(model.adjusted.params.file) %>% mutate(fixtimes = as.POSIXct(DateTime, format="%Y-%m-%dT%H:%M:%SZ", tz="UTC"), GPP_model_2_kg_per_s = GPP * 1e-3)
+  model.adjusted.params.2017.8day <- model.adjusted.params %>%
+    filter(fixtimes < as.POSIXct("2018-01-01", tz = "UTC")) %>%
     mutate(time = start_date_2017 + floor(as.numeric(difftime(fixtimes, start_date_2017, units = "days")) / 8) * 8 * 86400) %>%
     group_by(time) %>%
-    summarize(!!paste0("Model_2_kg_per_8days_", sprintf("%03d", i)) := sum(GPP_model_2_kg_per_s * 3600, na.rm = TRUE), .groups = "drop") %>% 
-    slice(-c(1,n()))
-  start_date_2018 <- as.POSIXct("2018-01-01", tz = "UTC")
-  model_data_2_2018_8day <- model_data_2 %>%
+    summarize(!!paste0("Model_2_kg_per_8days_", sprintf("%03d", i)) := sum(GPP_model_2_kg_per_s * 3600, na.rm = TRUE), .groups = "drop")
+  model.adjusted.params.2018.8day <- model.adjusted.params %>% 
+    filter(fixtimes >= as.POSIXct("2018-01-01", tz = "UTC")) %>%
     mutate(time = start_date_2018 + floor(as.numeric(difftime(fixtimes, start_date_2018, units = "days")) / 8) * 8 * 86400) %>%
     group_by(time) %>%
-    summarize(!!paste0("Model_2_kg_per_8days_", sprintf("%03d", i)) := sum(GPP_model_2_kg_per_s * 3600, na.rm = TRUE), .groups = "drop") %>% 
-    slice(-c(1,n()))
+    summarize(!!paste0("Model_2_kg_per_8days_", sprintf("%03d", i)) := sum(GPP_model_2_kg_per_s * 3600, na.rm = TRUE), .groups = "drop")
   modis_gpp_list[[i]] <- modis_data
-  model_1_gpp_list[[i]] <- bind_rows(model_data_1_2017_8day, model_data_1_2018_8day)
-  model_2_gpp_list[[i]] <- bind_rows(model_data_2_2017_8day, model_data_2_2018_8day)
+  model.out.of.the.box.gpp.list[[i]] <- bind_rows(model.out.of.the.box.2017.8day, model.out.of.the.box.2018.8day)
+  model.adjusted.params.gpp.list[[i]] <- bind_rows(model.adjusted.params.2017.8day, model.adjusted.params.2018.8day)
 }
 modis_data_all <- Reduce(function(x, y) merge(x, y, by = "time", all = TRUE), modis_gpp_list)
-model_1_data_all <- Reduce(function(x, y) merge(x, y, by = "time", all = TRUE), model_1_gpp_list)
-model_2_data_all <- Reduce(function(x, y) merge(x, y, by = "time", all = TRUE), model_2_gpp_list)
-merged_data <- merge(modis_data_all, model_1_data_all, by = "time", all = TRUE)
-merged_data <- merge(merged_data, model_2_data_all, by = "time", all = TRUE)
+model.out.of.the.box.data.all <- Reduce(function(x, y) merge(x, y, by = "time", all = TRUE), model.out.of.the.box.gpp.list)
+model.adjusted.params.data.all <- Reduce(function(x, y) merge(x, y, by = "time", all = TRUE), model.adjusted.params.gpp.list)
+merged_data <- left_join(modis_data_all, model.out.of.the.box.data.all, by = "time")
+merged_data <- left_join(merged_data, model.adjusted.params.data.all, by = "time")
 average_modis_gpp <- merged_data %>%
   pivot_longer(cols = starts_with("average_gpp_"), names_to = "variable", values_to = "gpp_value") %>%
   group_by(time) %>%
@@ -758,8 +751,18 @@ final_data <- merged_data %>%
   left_join(average_modeled_gpp_2, by = "time") %>%
   mutate(time = as.Date(time))
 final_data <- na.omit(final_data)
+final_data2 <- final_data %>% select(time, average_modis_gpp, average_modeled_gpp_1, average_modeled_gpp_2) %>% filter(time >= "2017-01-17", !time == "2018-11-01")
+## Jan 1 & 9 were removed as an initialization period.
+## NOTE FOR FUTURE PEOPLES: MODIS data, and the model data, collapse *down*. Meaning, for instance, October 24th contains data running from the 24th through the 31st. This is why the November 1st point was removed, as it was binning all of one hour (00:00:00), which was 0.
+sum(final_data2$average_modis_gpp)
+sum(final_data2$average_modeled_gpp_1)
+sum(final_data2$average_modeled_gpp_2)
 
-time_plot3 <- ggplot(final_data) +
+(sum(final_data2$average_modeled_gpp_1) - sum(final_data2$average_modis_gpp))/sum(final_data2$average_modis_gpp)
+
+(sum(final_data2$average_modeled_gpp_2) - sum(final_data2$average_modis_gpp))/sum(final_data2$average_modis_gpp)
+
+time_plot3 <- ggplot(final_data2) +
   geom_line(aes(x = time, y = average_modis_gpp, color = "MODIS"), linewidth = 0.65) +
   geom_line(aes(x = time, y = average_modeled_gpp_1, color = "Initial Param."), linewidth = 0.65) +
   geom_line(aes(x = time, y = average_modeled_gpp_2, color = "Modified Param."), linewidth = 0.65) +
